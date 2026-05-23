@@ -2,6 +2,7 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
+    @State private var isShowingSettings = false
 
     private var buddy: BuddyState {
         appState.buddy ?? BuddyState(
@@ -18,7 +19,27 @@ struct HomeView: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 24) {
+            VStack(alignment: .leading, spacing: 24) {
+                HStack(alignment: .center) {
+                    Text("Finance Buddy")
+                        .font(DoodleFont.largeTitle)
+                        .doodleTracking(-1.2)
+
+                    Spacer()
+
+                    Button {
+                        isShowingSettings = true
+                    } label: {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 22, weight: .semibold))
+                            .frame(width: 44, height: 44)
+                            .background(Color(.systemBackground), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Settings")
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
                 buddyCard
                 spendCard
                 controls
@@ -26,22 +47,29 @@ struct HomeView: View {
             .padding()
         }
         .background(Color(.systemGroupedBackground))
+        .sheet(isPresented: $isShowingSettings) {
+            SettingsView()
+                .environmentObject(appState)
+        }
     }
 
     private var buddyCard: some View {
         VStack(spacing: 16) {
-            Image(systemName: buddy.mood.symbolName)
-                .font(.system(size: 82, weight: .semibold))
-                .frame(width: 150, height: 150)
-                .foregroundStyle(moodColor)
-                .background(moodColor.opacity(0.14), in: Circle())
+            BuddyImageView(
+                mood: buddy.mood,
+                overrideAssetName: appState.debugBuddyAssetName,
+                fallbackSymbolName: buddy.mood.symbolName,
+                fallbackColor: moodColor
+            )
 
             VStack(spacing: 6) {
                 Text(buddy.buddyName)
-                    .font(.largeTitle.bold())
+                    .font(DoodleFont.largeTitle)
+                    .doodleTracking(-1.2)
 
                 Text(buddy.mood.title)
-                    .font(.title3.weight(.semibold))
+                    .font(DoodleFont.title3)
+                    .doodleTracking(-0.8)
                     .foregroundStyle(moodColor)
             }
 
@@ -49,7 +77,7 @@ struct HomeView: View {
                 Image(systemName: "flame")
                 Text("\(buddy.streak) day streak")
             }
-            .font(.headline)
+            .font(DoodleFont.headline)
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
             .background(Color(.secondarySystemGroupedBackground), in: Capsule())
@@ -67,13 +95,15 @@ struct HomeView: View {
                 Text(buddy.asOfDate)
                     .foregroundStyle(.secondary)
             }
-            .font(.subheadline)
+            .font(DoodleFont.subheadline)
 
             HStack(alignment: .firstTextBaseline) {
                 Text(money(buddy.spentTodayCents))
-                    .font(.system(size: 34, weight: .bold))
+                    .font(DoodleFont.largeTitle)
+                    .doodleTracking(-1.2)
                 Text("of \(money(buddy.dailyAllowanceCents))")
-                    .font(.headline)
+                    .font(DoodleFont.headline)
+                    .doodleTracking(-0.7)
                     .foregroundStyle(.secondary)
             }
 
@@ -97,6 +127,7 @@ struct HomeView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
+                .font(DoodleFont.headline)
             }
 
             Button {
@@ -108,6 +139,7 @@ struct HomeView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
+            .font(DoodleFont.headline)
             .disabled(!buddy.isLinked)
         }
     }
@@ -129,5 +161,68 @@ struct HomeView: View {
     private func money(_ cents: Int) -> String {
         let value = Decimal(cents) / 100
         return value.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD"))
+    }
+}
+
+private struct SettingsView: View {
+    @EnvironmentObject private var appState: AppState
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    if !appState.currentDisplayName.isEmpty {
+                        LabeledContent("Name", value: appState.currentDisplayName)
+                    }
+                    if !appState.currentUsername.isEmpty {
+                        LabeledContent("Account", value: appState.currentUsername)
+                    }
+                }
+
+                Section {
+                    Picker("Test buddy", selection: $appState.debugBuddyAssetName) {
+                        Text("Mood default").tag(Optional<String>.none)
+                        ForEach(debugBuddyAssets, id: \.self) { assetName in
+                            Text(assetName.replacingOccurrences(of: "Cat_", with: "").replacingOccurrences(of: "_", with: " "))
+                                .tag(Optional(assetName))
+                        }
+                    }
+                } header: {
+                    Text("Developer")
+                }
+
+                Section {
+                    Button(role: .destructive) {
+                        dismiss()
+                        Task {
+                            await appState.signOut()
+                        }
+                    } label: {
+                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+                    }
+                }
+            }
+            .navigationTitle("Settings")
+            .font(DoodleFont.body)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+
+    private var debugBuddyAssets: [String] {
+        [
+            "Cat_Broke",
+            "Cat_Cheesing",
+            "Cat_Money_Spread",
+            "Cat_Tear_Pool",
+            "Cat_Worried"
+        ]
     }
 }

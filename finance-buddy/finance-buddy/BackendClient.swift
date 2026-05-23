@@ -15,7 +15,9 @@ struct BackendClient {
             body: OnboardingRequest(
                 monthlyIncomeCents: input.monthlyIncomeCents,
                 monthlyBudgetCents: input.monthlyBudgetCents,
-                buddyName: input.buddyName
+                buddyName: input.buddyName,
+                displayName: input.displayName,
+                username: input.normalizedUsername
             )
         )
     }
@@ -45,12 +47,50 @@ struct BackendClient {
         )
     }
 
+    func getFriends() async throws -> [FriendBuddy] {
+        let response: FriendsResponse = try await send(
+            path: "/friends",
+            method: "GET",
+            body: Optional<EmptyBody>.none
+        )
+        return response.friends
+    }
+
+    func searchFriends(query: String) async throws -> [FriendSearchResult] {
+        let response: FriendSearchResponse = try await send(
+            path: "/friends/search",
+            method: "GET",
+            queryItems: [URLQueryItem(name: "q", value: query)],
+            body: Optional<EmptyBody>.none
+        )
+        return response.results
+    }
+
+    func addFriend(username: String) async throws -> FriendBuddy {
+        let response: AddFriendResponse = try await send(
+            path: "/friends",
+            method: "POST",
+            body: AddFriendRequest(username: username)
+        )
+        return response.friend
+    }
+
     private func send<Response: Decodable, Body: Encodable>(
         path: String,
         method: String,
+        queryItems: [URLQueryItem] = [],
         body: Body?
     ) async throws -> Response {
-        var request = URLRequest(url: baseURL.appending(path: path))
+        var components = URLComponents(url: baseURL.appending(path: path), resolvingAgainstBaseURL: false)
+        if !queryItems.isEmpty {
+            components?.queryItems = queryItems
+        }
+
+        guard let url = components?.url else {
+            throw BackendError.invalidResponse
+        }
+
+        var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
@@ -84,10 +124,16 @@ private struct OnboardingRequest: Encodable {
     let monthlyIncomeCents: Int
     let monthlyBudgetCents: Int
     let buddyName: String
+    let displayName: String
+    let username: String
 }
 
 private struct ExchangePublicTokenRequest: Encodable {
     let publicToken: String
+}
+
+private struct AddFriendRequest: Encodable {
+    let username: String
 }
 
 private struct EmptyBody: Codable {}

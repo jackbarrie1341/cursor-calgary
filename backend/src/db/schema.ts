@@ -15,15 +15,23 @@ import {
 
 export const buddyMood = pgEnum("buddy_mood", ["happy", "nervous", "hungry", "sick"]);
 
-export const profiles = pgTable("profiles", {
-  userId: uuid("user_id").primaryKey(),
-  monthlyIncomeCents: integer("monthly_income_cents").notNull(),
-  monthlyBudgetCents: integer("monthly_budget_cents").notNull(),
-  dailyAllowanceCents: integer("daily_allowance_cents").notNull(),
-  buddyName: text("buddy_name").notNull().default("Buddy"),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
-});
+export const profiles = pgTable(
+  "profiles",
+  {
+    userId: uuid("user_id").primaryKey(),
+    username: text("username"),
+    displayName: text("display_name").notNull().default(""),
+    monthlyIncomeCents: integer("monthly_income_cents").notNull(),
+    monthlyBudgetCents: integer("monthly_budget_cents").notNull(),
+    dailyAllowanceCents: integer("daily_allowance_cents").notNull(),
+    buddyName: text("buddy_name").notNull().default("Buddy"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    usernameUnique: uniqueIndex("profiles_username_unique").on(table.username)
+  })
+);
 
 export const plaidItems = pgTable(
   "plaid_items",
@@ -85,6 +93,25 @@ export const buddyStates = pgTable(
   },
   (table) => ({
     stateDateIdx: index("buddy_states_state_date_idx").on(table.stateDate)
+  })
+);
+
+export const friendships = pgTable(
+  "friendships",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.userId, { onDelete: "cascade" }),
+    friendUserId: uuid("friend_user_id")
+      .notNull()
+      .references(() => profiles.userId, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userIdIdx: index("friendships_user_id_idx").on(table.userId),
+    friendUserIdIdx: index("friendships_friend_user_id_idx").on(table.friendUserId),
+    pairUnique: uniqueIndex("friendships_user_friend_unique").on(table.userId, table.friendUserId)
   })
 );
 

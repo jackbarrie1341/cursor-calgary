@@ -9,6 +9,12 @@ final class AppState: ObservableObject {
     @Published var errorMessage: String?
     @Published var linkToken: String?
     @Published var isPresentingPlaid = false
+    @Published var isAuthenticated = false
+    @Published var currentDisplayName = ""
+    @Published var currentUsername = ""
+    @Published var friends: [FriendBuddy] = []
+    @Published var friendSearchResults: [FriendSearchResult] = []
+    @Published var debugBuddyAssetName: String?
 
     private let supabase = SupabaseClient(
         supabaseURL: AppConfig.supabaseURL,
@@ -28,17 +34,62 @@ final class AppState: ObservableObject {
         defer { isLoading = false }
 
         do {
-            try await ensureSession()
-            buddy = try await backend.getBuddy()
-            await subscribeToBuddyUpdates()
+            try await restoreSession()
+            if isAuthenticated {
+                buddy = try await backend.getBuddy()
+                await subscribeToBuddyUpdates()
+            }
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func signUp(_ input: AuthInput) async {
+        await run(requiresAuth: false) {
+            guard AppConfig.hasSupabaseConfig else {
+                throw AppConfigurationError.missingSupabaseConfig
+            }
+
+            let response = try await self.supabase.auth.signUp(
+                email: input.normalizedEmail,
+                password: input.password,
+                data: [
+                    "name": .string(input.name.trimmingCharacters(in: .whitespacesAndNewlines)),
+                    "email": .string(input.normalizedEmail)
+                ]
+            )
+
+            guard let session = response.session else {
+                throw AuthFlowError.emailConfirmationEnabled
+            }
+
+            self.currentDisplayName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            self.apply(session: session)
+            self.buddy = try await self.backend.getBuddy()
+            await self.subscribeToBuddyUpdates()
+        }
+    }
+
+    func signIn(_ input: AuthInput) async {
+        await run(requiresAuth: false) {
+            guard AppConfig.hasSupabaseConfig else {
+                throw AppConfigurationError.missingSupabaseConfig
+            }
+
+            let session = try await self.supabase.auth.signIn(
+                email: input.normalizedEmail,
+                password: input.password
+            )
+            self.apply(session: session)
+            self.buddy = try await self.backend.getBuddy()
+            await self.subscribeToBuddyUpdates()
         }
     }
 
     func completeOnboarding(_ input: OnboardingInput) async {
         await run {
             self.buddy = try await self.backend.completeOnboarding(input)
+            self.currentUsername = input.normalizedUsername
         }
     }
 
@@ -78,20 +129,79 @@ final class AppState: ObservableObject {
         }
     }
 
-    private func run(_ operation: @escaping () async throws -> Void) async {
+    func signOut() async {
+        await run(requiresAuth: false) {
+            try await self.supabase.auth.signOut()
+            self.realtimeTask?.cancel()
+            self.realtimeTask = nil
+            self.accessToken = nil
+            self.userId = nil
+            self.buddy = nil
+            self.linkToken = nil
+            self.isPresentingPlaid = false
+            self.isAuthenticated = false
+            self.currentDisplayName = ""
+            self.currentUsername = ""
+            self.friends = []
+            self.friendSearchResults = []
+        }
+    }
+
+    func loadFriends() async {
+        await run {
+            self.friends = try await self.backend.getFriends()
+        }
+    }
+
+    func searchFriends(query: String) async {
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else {
+            friendSearchResults = []
+            return
+        }
+
+        await run {
+            self.friendSearchResults = try await self.backend.searchFriends(query: trimmed)
+        }
+    }
+
+    func addFriend(username: String) async {
+        await run {
+            let friend = try await self.backend.addFriend(username: username.lowercased())
+            if !self.friends.contains(where: { $0.userId == friend.userId }) {
+                self.friends.insert(friend, at: 0)
+            }
+            self.friendSearchResults = self.friendSearchResults.map { result in
+                guard result.username == friend.username else { return result }
+                return FriendSearchResult(
+                    userId: result.userId,
+                    username: result.username,
+                    displayName: result.displayName,
+                    buddyName: result.buddyName,
+                    mood: result.mood,
+                    streak: result.streak,
+                    isFriend: true
+                )
+            }
+        }
+    }
+
+    private func run(requiresAuth: Bool = true, _ operation: @escaping () async throws -> Void) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
 
         do {
-            try await ensureSession()
+            if requiresAuth {
+                try await restoreSession()
+            }
             try await operation()
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func ensureSession() async throws {
+    private func restoreSession() async throws {
         guard AppConfig.hasSupabaseConfig else {
             throw AppConfigurationError.missingSupabaseConfig
         }
@@ -102,13 +212,24 @@ final class AppState: ObservableObject {
 
         do {
             let session = try await supabase.auth.session
-            accessToken = session.accessToken
-            userId = session.user.id.uuidString
+            if session.user.isAnonymous {
+                try await supabase.auth.signOut()
+                isAuthenticated = false
+                return
+            }
+            apply(session: session)
         } catch {
-            let session = try await supabase.auth.signInAnonymously()
-            accessToken = session.accessToken
-            userId = session.user.id.uuidString
+            isAuthenticated = false
         }
+    }
+
+    private func apply(session: Session) {
+        accessToken = session.accessToken
+        userId = session.user.id.uuidString
+        currentDisplayName = session.user.userMetadata["name"]?.stringValue ?? currentDisplayName
+        currentUsername = session.user.email?.components(separatedBy: "@").first
+            ?? currentUsername
+        isAuthenticated = true
     }
 
     private func subscribeToBuddyUpdates() async {

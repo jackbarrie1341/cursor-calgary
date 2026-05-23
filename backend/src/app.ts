@@ -7,7 +7,7 @@ import { z } from "zod";
 import { requireAuth, type AuthenticatedRequest } from "./auth.js";
 import { calculateDailyAllowanceCents, localDateString } from "./buddy/engine.js";
 import { env } from "./config/env.js";
-import { db } from "./db/client.js";
+import { db, pool } from "./db/client.js";
 import { buddyStates, plaidItems, profiles } from "./db/schema.js";
 import { plaidClient } from "./plaid/client.js";
 import { getBuddyPayload, recomputeBuddyState } from "./services/buddyService.js";
@@ -16,11 +16,21 @@ import { syncPlaidItem, syncPlaidItemByPlaidItemId } from "./services/transactio
 const onboardingSchema = z.object({
   monthlyIncomeCents: z.number().int().nonnegative(),
   monthlyBudgetCents: z.number().int().positive(),
-  buddyName: z.string().trim().min(1).max(40).optional()
+  buddyName: z.string().trim().min(1).max(40).optional(),
+  displayName: z.string().trim().min(1).max(80).optional(),
+  username: z.string().trim().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/)
 });
 
 const exchangeSchema = z.object({
   publicToken: z.string().min(1)
+});
+
+const friendSearchSchema = z.object({
+  q: z.string().trim().min(1).max(32)
+});
+
+const addFriendSchema = z.object({
+  username: z.string().trim().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/)
 });
 
 export const app = express();
@@ -46,6 +56,8 @@ app.post("/onboarding", requireAuth, async (req, res, next) => {
         monthlyIncomeCents: input.monthlyIncomeCents,
         monthlyBudgetCents: input.monthlyBudgetCents,
         dailyAllowanceCents,
+        displayName: input.displayName ?? "",
+        username: input.username?.toLowerCase(),
         buddyName: input.buddyName ?? "Buddy"
       })
       .onConflictDoUpdate({
@@ -54,6 +66,8 @@ app.post("/onboarding", requireAuth, async (req, res, next) => {
           monthlyIncomeCents: input.monthlyIncomeCents,
           monthlyBudgetCents: input.monthlyBudgetCents,
           dailyAllowanceCents,
+          displayName: input.displayName ?? "",
+          username: input.username?.toLowerCase(),
           buddyName: input.buddyName ?? "Buddy",
           updatedAt: new Date()
         }
@@ -178,6 +192,125 @@ app.get("/buddy", requireAuth, async (req, res, next) => {
   }
 });
 
+app.get("/friends", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const result = await pool.query(
+      `
+        select
+          p.user_id as "userId",
+          p.username,
+          p.display_name as "displayName",
+          p.buddy_name as "buddyName",
+          coalesce(bs.mood::text, 'happy') as mood,
+          coalesce(bs.streak, 0) as streak
+        from friendships f
+        join profiles p on p.user_id = f.friend_user_id
+        left join buddy_states bs on bs.user_id = p.user_id
+        where f.user_id = $1
+        order by f.created_at desc
+      `,
+      [authReq.userId]
+    );
+
+    res.json({ friends: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get("/friends/search", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const input = friendSearchSchema.parse(req.query);
+    const query = input.q.toLowerCase();
+    const result = await pool.query(
+      `
+        select
+          p.user_id as "userId",
+          p.username,
+          p.display_name as "displayName",
+          p.buddy_name as "buddyName",
+          coalesce(bs.mood::text, 'happy') as mood,
+          coalesce(bs.streak, 0) as streak,
+          exists (
+            select 1
+            from friendships f
+            where f.user_id = $1 and f.friend_user_id = p.user_id
+          ) as "isFriend"
+        from profiles p
+        left join buddy_states bs on bs.user_id = p.user_id
+        where p.user_id <> $1
+          and p.username is not null
+          and p.username ilike $2
+        order by p.username asc
+        limit 10
+      `,
+      [authReq.userId, `${query}%`]
+    );
+
+    res.json({ results: result.rows });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post("/friends", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const input = addFriendSchema.parse(req.body);
+    const friend = await pool.query(
+      `
+        select user_id
+        from profiles
+        where username = $1
+        limit 1
+      `,
+      [input.username.toLowerCase()]
+    );
+
+    if (friend.rowCount === 0) {
+      res.status(404).json({ error: "friend_not_found", message: "No buddy with that code was found." });
+      return;
+    }
+
+    const friendUserId = friend.rows[0].user_id;
+    if (friendUserId === authReq.userId) {
+      res.status(400).json({ error: "cannot_add_self", message: "You cannot add yourself as a friend." });
+      return;
+    }
+
+    await pool.query(
+      `
+        insert into friendships (user_id, friend_user_id)
+        values ($1, $2)
+        on conflict (user_id, friend_user_id) do nothing
+      `,
+      [authReq.userId, friendUserId]
+    );
+
+    const result = await pool.query(
+      `
+        select
+          p.user_id as "userId",
+          p.username,
+          p.display_name as "displayName",
+          p.buddy_name as "buddyName",
+          coalesce(bs.mood::text, 'happy') as mood,
+          coalesce(bs.streak, 0) as streak
+        from profiles p
+        left join buddy_states bs on bs.user_id = p.user_id
+        where p.user_id = $1
+      `,
+      [friendUserId]
+    );
+
+    res.status(201).json({ friend: result.rows[0] });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.use((error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error(error);
 
@@ -186,6 +319,22 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
     return;
   }
 
+  if (isPostgresUniqueViolation(error, "profiles_username_unique")) {
+    res.status(409).json({ error: "username_taken", message: "That buddy code is already taken." });
+    return;
+  }
+
   const message = error instanceof Error ? error.message : "Unknown error";
   res.status(500).json({ error: "internal_error", message });
 });
+
+function isPostgresUniqueViolation(error: unknown, constraint: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    "constraint" in error &&
+    error.code === "23505" &&
+    error.constraint === constraint
+  );
+}

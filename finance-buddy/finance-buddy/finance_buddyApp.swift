@@ -9,6 +9,10 @@ import SwiftUI
 
 @main
 struct finance_buddyApp: App {
+    init() {
+        DoodleAppearance.configure()
+    }
+
     var body: some Scene {
         WindowGroup {
             ContentView()

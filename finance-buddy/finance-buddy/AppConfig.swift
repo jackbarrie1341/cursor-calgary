@@ -20,3 +20,14 @@ enum AppConfigurationError: LocalizedError {
         }
     }
 }
+
+enum AuthFlowError: LocalizedError {
+    case emailConfirmationEnabled
+
+    var errorDescription: String? {
+        switch self {
+        case .emailConfirmationEnabled:
+            "Supabase email confirmation is enabled. Disable confirmation for the hackathon demo, then create the account again."
+        }
+    }
+}

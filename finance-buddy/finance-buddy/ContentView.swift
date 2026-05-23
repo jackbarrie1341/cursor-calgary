@@ -9,15 +9,22 @@ struct ContentView: View {
             Group {
                 if appState.isLoading && appState.buddy == nil {
                     ProgressView()
-                } else if appState.buddy?.hasOnboarded == true {
-                    HomeView()
+                } else if !appState.isAuthenticated {
+                    AuthView()
+                        .environmentObject(appState)
+                } else if appState.buddy?.hasOnboarded != true {
+                    OnboardingView()
+                        .environmentObject(appState)
+                } else if appState.buddy?.isLinked != true {
+                    BankOnboardingView()
                         .environmentObject(appState)
                 } else {
-                    OnboardingView()
+                    MainTabView()
                         .environmentObject(appState)
                 }
             }
-            .navigationTitle("Finance Buddy")
+            .font(DoodleFont.body)
+            .doodleTracking()
             .toolbar {
                 if appState.isLoading {
                     ProgressView()
