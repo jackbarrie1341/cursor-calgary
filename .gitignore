@@ -1,0 +1,15 @@
+.DS_Store
+
+# Node
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcuserdata/
+xcuserdata/
