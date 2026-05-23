@@ -8,6 +8,8 @@ struct HomeView: View {
         appState.buddy ?? BuddyState(
             mood: .happy,
             spentTodayCents: 0,
+            spentWeekCents: 0,
+            spentMonthCents: 0,
             dailyAllowanceCents: 0,
             streak: 0,
             asOfDate: "",
@@ -109,10 +111,32 @@ struct HomeView: View {
 
             ProgressView(value: progress)
                 .tint(moodColor)
+
+            HStack(spacing: 10) {
+                spendMetric(title: "Today", cents: buddy.spentTodayCents)
+                spendMetric(title: "Week", cents: buddy.spentWeekCents)
+                spendMetric(title: "Month", cents: buddy.spentMonthCents)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 8))
+    }
+
+    private func spendMetric(title: String, cents: Int) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(DoodleFont.caption)
+                .foregroundStyle(.secondary)
+            Text(money(cents))
+                .font(DoodleFont.headline)
+                .doodleTracking(-0.7)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var controls: some View {

@@ -28,6 +28,8 @@ enum BuddyMood: String, Codable, CaseIterable {
 struct BuddyState: Codable, Equatable {
     let mood: BuddyMood
     let spentTodayCents: Int
+    let spentWeekCents: Int
+    let spentMonthCents: Int
     let dailyAllowanceCents: Int
     let streak: Int
     let asOfDate: String

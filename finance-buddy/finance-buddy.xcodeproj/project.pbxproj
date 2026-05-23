@@ -14,16 +14,64 @@
 		5030C6902FC23A6D0095139A /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 5030C68F2FC23A6D0095139A /* Realtime */; };
 		5030C6922FC23A6D0095139A /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 5030C6912FC23A6D0095139A /* Storage */; };
 		5030C6942FC23A6D0095139A /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 5030C6932FC23A6D0095139A /* Supabase */; };
+		5030C6BC2FC26ABC0095139A /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5030C6BB2FC26ABC0095139A /* WidgetKit.framework */; };
+		5030C6BE2FC26ABC0095139A /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5030C6BD2FC26ABC0095139A /* SwiftUI.framework */; };
+		5030C6CF2FC26ABD0095139A /* FinanceBuddyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5030C6B92FC26ABC0095139A /* FinanceBuddyWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		5030C6CD2FC26ABD0095139A /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5030C66F2FC231180095139A /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5030C6B82FC26ABC0095139A;
+			remoteInfo = FinanceBuddyWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		5030C6D42FC26ABD0095139A /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				5030C6CF2FC26ABD0095139A /* FinanceBuddyWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		5030C6772FC231180095139A /* finance-buddy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "finance-buddy.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		5030C6B92FC26ABC0095139A /* FinanceBuddyWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FinanceBuddyWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		5030C6BB2FC26ABC0095139A /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		5030C6BD2FC26ABC0095139A /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		5030C6D02FC26ABD0095139A /* Exceptions for "FinanceBuddyWidget" folder in "FinanceBuddyWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 5030C6B82FC26ABC0095139A /* FinanceBuddyWidgetExtension */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5030C6792FC231180095139A /* finance-buddy */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = "finance-buddy";
+			sourceTree = "<group>";
+		};
+		5030C6BF2FC26ABC0095139A /* FinanceBuddyWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				5030C6D02FC26ABD0095139A /* Exceptions for "FinanceBuddyWidget" folder in "FinanceBuddyWidgetExtension" target */,
+			);
+			path = FinanceBuddyWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -43,6 +91,15 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5030C6B62FC26ABC0095139A /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5030C6BE2FC26ABC0095139A /* SwiftUI.framework in Frameworks */,
+				5030C6BC2FC26ABC0095139A /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -50,6 +107,8 @@
 			isa = PBXGroup;
 			children = (
 				5030C6792FC231180095139A /* finance-buddy */,
+				5030C6BF2FC26ABC0095139A /* FinanceBuddyWidget */,
+				5030C6BA2FC26ABC0095139A /* Frameworks */,
 				5030C6782FC231180095139A /* Products */,
 			);
 			sourceTree = "<group>";
@@ -58,8 +117,18 @@
 			isa = PBXGroup;
 			children = (
 				5030C6772FC231180095139A /* finance-buddy.app */,
+				5030C6B92FC26ABC0095139A /* FinanceBuddyWidgetExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5030C6BA2FC26ABC0095139A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5030C6BB2FC26ABC0095139A /* WidgetKit.framework */,
+				5030C6BD2FC26ABC0095139A /* SwiftUI.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -72,10 +141,12 @@
 				5030C6732FC231180095139A /* Sources */,
 				5030C6742FC231180095139A /* Frameworks */,
 				5030C6752FC231180095139A /* Resources */,
+				5030C6D42FC26ABD0095139A /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				5030C6CE2FC26ABD0095139A /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5030C6792FC231180095139A /* finance-buddy */,
@@ -94,6 +165,28 @@
 			productReference = 5030C6772FC231180095139A /* finance-buddy.app */;
 			productType = "com.apple.product-type.application";
 		};
+		5030C6B82FC26ABC0095139A /* FinanceBuddyWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5030C6D12FC26ABD0095139A /* Build configuration list for PBXNativeTarget "FinanceBuddyWidgetExtension" */;
+			buildPhases = (
+				5030C6B52FC26ABC0095139A /* Sources */,
+				5030C6B62FC26ABC0095139A /* Frameworks */,
+				5030C6B72FC26ABC0095139A /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				5030C6BF2FC26ABC0095139A /* FinanceBuddyWidget */,
+			);
+			name = FinanceBuddyWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = FinanceBuddyWidgetExtension;
+			productReference = 5030C6B92FC26ABC0095139A /* FinanceBuddyWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -105,6 +198,9 @@
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					5030C6762FC231180095139A = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					5030C6B82FC26ABC0095139A = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
@@ -128,12 +224,20 @@
 			projectRoot = "";
 			targets = (
 				5030C6762FC231180095139A /* finance-buddy */,
+				5030C6B82FC26ABC0095139A /* FinanceBuddyWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		5030C6752FC231180095139A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5030C6B72FC26ABC0095139A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -150,7 +254,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		5030C6B52FC26ABC0095139A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5030C6CE2FC26ABD0095139A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5030C6B82FC26ABC0095139A /* FinanceBuddyWidgetExtension */;
+			targetProxy = 5030C6CD2FC26ABD0095139A /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5030C6802FC231180095139A /* Debug */ = {
@@ -357,6 +476,71 @@
 			};
 			name = Release;
 		};
+		5030C6D22FC26ABD0095139A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3672AKLP84;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FinanceBuddyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FinanceBuddyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cursor-calgary.finance-buddy.FinanceBuddyWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		5030C6D32FC26ABD0095139A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 3672AKLP84;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FinanceBuddyWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FinanceBuddyWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "cursor-calgary.finance-buddy.FinanceBuddyWidget";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -374,6 +558,15 @@
 			buildConfigurations = (
 				5030C6832FC231180095139A /* Debug */,
 				5030C6842FC231180095139A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		5030C6D12FC26ABD0095139A /* Build configuration list for PBXNativeTarget "FinanceBuddyWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5030C6D22FC26ABD0095139A /* Debug */,
+				5030C6D32FC26ABD0095139A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

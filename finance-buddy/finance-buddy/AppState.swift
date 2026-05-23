@@ -4,7 +4,15 @@ import Supabase
 
 @MainActor
 final class AppState: ObservableObject {
-    @Published var buddy: BuddyState?
+    @Published var buddy: BuddyState? {
+        didSet {
+            if let buddy {
+                BuddyWidgetSnapshotStore.save(buddy)
+            } else {
+                BuddyWidgetSnapshotStore.clear()
+            }
+        }
+    }
     @Published var isLoading = false
     @Published var errorMessage: String?
     @Published var linkToken: String?

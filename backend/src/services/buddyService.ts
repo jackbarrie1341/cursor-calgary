@@ -1,12 +1,14 @@
 import { and, eq, isNull, sql } from "drizzle-orm";
 import { env } from "../config/env.js";
-import { moodForSpend, localDateString, streakForToday } from "../buddy/engine.js";
+import { addDaysToDateString, moodForSpend, localDateString, monthStartForDateString, streakForToday, weekStartForDateString } from "../buddy/engine.js";
 import { db } from "../db/client.js";
 import { buddyStates, plaidItems, profiles, transactions } from "../db/schema.js";
 
 export type BuddyPayload = {
   mood: string;
   spentTodayCents: number;
+  spentWeekCents: number;
+  spentMonthCents: number;
   dailyAllowanceCents: number;
   streak: number;
   asOfDate: string;
@@ -24,6 +26,8 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
     return {
       mood: "happy",
       spentTodayCents: 0,
+      spentWeekCents: 0,
+      spentMonthCents: 0,
       dailyAllowanceCents: 0,
       streak: 0,
       asOfDate: localDateString(new Date(), env.APP_TIME_ZONE),
@@ -40,6 +44,8 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
   return {
     mood: state.mood,
     spentTodayCents: state.spentTodayCents,
+    spentWeekCents: await sumSpendCents(userId, state.stateDate, addDaysToDateString(weekStartForDateString(state.stateDate), 6)),
+    spentMonthCents: await sumSpendCents(userId, monthStartForDateString(state.stateDate), state.stateDate),
     dailyAllowanceCents: state.dailyAllowanceCents,
     streak: state.streak,
     asOfDate: state.stateDate,
@@ -56,20 +62,9 @@ export async function recomputeBuddyState(userId: string): Promise<BuddyPayload>
   }
 
   const today = localDateString(new Date(), env.APP_TIME_ZONE);
-  const [sumRow] = await db
-    .select({
-      spentTodayCents: sql<number>`coalesce(sum(case when ${transactions.amountCents} > 0 then ${transactions.amountCents} else 0 end), 0)::int`
-    })
-    .from(transactions)
-    .where(
-      and(
-        eq(transactions.userId, userId),
-        eq(transactions.authorizedDate, today),
-        eq(transactions.removed, false)
-      )
-    );
-
-  const spentTodayCents = sumRow?.spentTodayCents ?? 0;
+  const spentTodayCents = await sumSpendCents(userId, today, today);
+  const spentWeekCents = await sumSpendCents(userId, weekStartForDateString(today), addDaysToDateString(weekStartForDateString(today), 6));
+  const spentMonthCents = await sumSpendCents(userId, monthStartForDateString(today), today);
   const [previousState] = await db.select().from(buddyStates).where(eq(buddyStates.userId, userId)).limit(1);
   const mood = moodForSpend(spentTodayCents, profile.dailyAllowanceCents);
   const streak = streakForToday(spentTodayCents, profile.dailyAllowanceCents, previousState?.streak ?? null);
@@ -102,6 +97,8 @@ export async function recomputeBuddyState(userId: string): Promise<BuddyPayload>
   return {
     mood: state.mood,
     spentTodayCents: state.spentTodayCents,
+    spentWeekCents,
+    spentMonthCents,
     dailyAllowanceCents: state.dailyAllowanceCents,
     streak: state.streak,
     asOfDate: state.stateDate,
@@ -109,6 +106,24 @@ export async function recomputeBuddyState(userId: string): Promise<BuddyPayload>
     isLinked: Boolean(item),
     hasOnboarded: true
   };
+}
+
+async function sumSpendCents(userId: string, startDate: string, endDate: string): Promise<number> {
+  const [sumRow] = await db
+    .select({
+      totalCents: sql<number>`coalesce(sum(case when ${transactions.amountCents} > 0 then ${transactions.amountCents} else 0 end), 0)::int`
+    })
+    .from(transactions)
+    .where(
+      and(
+        eq(transactions.userId, userId),
+        sql`${transactions.authorizedDate} >= ${startDate}`,
+        sql`${transactions.authorizedDate} <= ${endDate}`,
+        eq(transactions.removed, false)
+      )
+    );
+
+  return sumRow?.totalCents ?? 0;
 }
 
 export async function userHasLinkedItem(userId: string): Promise<boolean> {

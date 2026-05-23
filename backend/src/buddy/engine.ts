@@ -41,3 +41,21 @@ export function localDateString(date = new Date(), timeZone = "America/Edmonton"
 
   return `${year}-${month}-${day}`;
 }
+
+export function addDaysToDateString(dateString: string, days: number): string {
+  const date = new Date(`${dateString}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+export function monthStartForDateString(dateString: string): string {
+  return `${dateString.slice(0, 7)}-01`;
+}
+
+export function weekStartForDateString(dateString: string): string {
+  const date = new Date(`${dateString}T00:00:00.000Z`);
+  const day = date.getUTCDay();
+  const daysFromMonday = (day + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - daysFromMonday);
+  return date.toISOString().slice(0, 10);
+}

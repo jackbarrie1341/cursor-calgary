@@ -3,6 +3,10 @@ import SwiftUI
 struct FriendsView: View {
     @EnvironmentObject private var appState: AppState
     @State private var query = ""
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
 
     var body: some View {
         ScrollView {
@@ -26,8 +30,10 @@ struct FriendsView: View {
                     if appState.friends.isEmpty {
                         emptyState
                     } else {
-                        ForEach(appState.friends) { friend in
-                            FriendRow(friend: friend)
+                        LazyVGrid(columns: columns, spacing: 12) {
+                            ForEach(appState.friends) { friend in
+                                FriendCard(friend: friend)
+                            }
                         }
                     }
                 }
@@ -114,32 +120,47 @@ struct FriendsView: View {
     }
 }
 
-private struct FriendRow: View {
+private struct FriendCard: View {
     let friend: FriendBuddy
 
     var body: some View {
-        HStack(spacing: 14) {
-            MoodBadge(mood: friend.mood)
+        VStack(spacing: 10) {
+            Text(friend.buddyName)
+                .font(DoodleFont.title3)
+                .doodleTracking(-0.8)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(friend.buddyName)
-                    .font(DoodleFont.title3)
-                    .doodleTracking(-0.8)
-                Text("@\(friend.username)")
-                    .font(DoodleFont.caption)
-                    .foregroundStyle(.secondary)
-            }
+            BuddyImageView(
+                mood: friend.mood,
+                overrideAssetName: nil,
+                fallbackSymbolName: friend.mood.symbolName,
+                fallbackColor: friend.mood.color,
+                size: 96
+            )
 
-            Spacer()
+            Text("@\(friend.username)")
+                .font(DoodleFont.caption)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
 
-            VStack(alignment: .trailing, spacing: 4) {
+            HStack(spacing: 8) {
                 Text(friend.mood.title)
-                    .font(DoodleFont.headline)
+                    .font(DoodleFont.caption)
+                    .foregroundStyle(friend.mood.color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+
+                Spacer(minLength: 4)
+
                 Label("\(friend.streak)", systemImage: "flame")
                     .font(DoodleFont.caption)
                     .foregroundStyle(.secondary)
             }
         }
+        .frame(maxWidth: .infinity)
+        .frame(minHeight: 212)
         .padding(16)
         .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 8))
     }
@@ -151,13 +172,15 @@ private struct MoodBadge: View {
     var body: some View {
         Image(systemName: mood.symbolName)
             .font(.system(size: 26, weight: .semibold))
-            .foregroundStyle(color)
+            .foregroundStyle(mood.color)
             .frame(width: 48, height: 48)
-            .background(color.opacity(0.14), in: Circle())
+            .background(mood.color.opacity(0.14), in: Circle())
     }
+}
 
-    private var color: Color {
-        switch mood {
+private extension BuddyMood {
+    var color: Color {
+        switch self {
         case .happy: .green
         case .nervous: .yellow
         case .hungry: .orange

@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppConfig {
-    static let backendBaseURL = URL(string: "http://localhost:3000")!
+    static let backendBaseURL = URL(string: "https://cursor-calgary-production.up.railway.app")!
     static let supabaseURL = URL(string: "https://ggcfzetyfjodeqxcsytu.supabase.co")!
     static let supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdnY2Z6ZXR5ZmpvZGVxeGNzeXR1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTQ5MzEsImV4cCI6MjA5NTEzMDkzMX0.1KmYtENwD5rajn59nk8VuXhcHgrlRpR7zxvwsb3jqmI"
 
