@@ -140,6 +140,8 @@ private struct FriendCard: View {
                 overrideAssetName: nil,
                 fallbackSymbolName: friend.mood.symbolName,
                 fallbackColor: friend.mood.color,
+                hatAssetKey: friend.hatAssetKey,
+                hatSymbolName: friend.hatSymbolName,
                 fillColor: friend.catFillColor,
                 size: 96
             )

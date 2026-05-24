@@ -9,6 +9,8 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
         let catFillHue: Double
         let catFillSaturation: Double
         let catFillBrightness: Double
+        let hatAssetKey: String?
+        let hatSymbolName: String?
     }
 
     let name: String
@@ -18,6 +20,8 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
 enum BuddyLiveActivityController {
     static func startOrUpdate(
         buddy: BuddyState,
+        mood: BuddyMood,
+        equippedHat: HatItem?,
         frameIndex: Int,
         catFillHue: Double,
         catFillSaturation: Double,
@@ -26,12 +30,14 @@ enum BuddyLiveActivityController {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
         let state = FinanceBuddyWidgetAttributes.ContentState(
-            mood: buddy.mood.rawValue,
+            mood: mood.rawValue,
             frameIndex: frameIndex,
             dailyBudgetSpentPercent: buddy.dailyBudgetSpentPercent,
             catFillHue: catFillHue,
             catFillSaturation: catFillSaturation,
-            catFillBrightness: catFillBrightness
+            catFillBrightness: catFillBrightness,
+            hatAssetKey: equippedHat?.assetKey,
+            hatSymbolName: equippedHat?.symbolName
         )
         let content = ActivityContent(
             state: state,

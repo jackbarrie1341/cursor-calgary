@@ -34,6 +34,17 @@ extension BuddyMood {
     }
 }
 
+extension BuddyState {
+    var budgetUsageRatio: Double {
+        guard dailyAllowanceCents > 0 else { return 0 }
+        return Double(spentTodayCents) / Double(dailyAllowanceCents)
+    }
+
+    var budgetMood: BuddyMood {
+        .forBudgetUsageRatio(budgetUsageRatio)
+    }
+}
+
 struct BuddyState: Codable, Equatable {
     let mood: BuddyMood
     let spentTodayCents: Int
@@ -199,6 +210,8 @@ struct FriendBuddy: Codable, Identifiable, Equatable {
     let catFillHue: Double?
     let catFillSaturation: Double?
     let catFillBrightness: Double?
+    let hatAssetKey: String?
+    let hatSymbolName: String?
     let mood: BuddyMood
     let streak: Int
 
@@ -213,6 +226,8 @@ struct FriendSearchResult: Codable, Identifiable, Equatable {
     let catFillHue: Double?
     let catFillSaturation: Double?
     let catFillBrightness: Double?
+    let hatAssetKey: String?
+    let hatSymbolName: String?
     let mood: BuddyMood
     let streak: Int
     let isFriend: Bool

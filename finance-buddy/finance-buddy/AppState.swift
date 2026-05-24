@@ -61,6 +61,10 @@ final class AppState: ObservableObject {
             } else {
                 UserDefaults.standard.removeObject(forKey: "dev_budget_util_override_percent")
             }
+            if let buddy {
+                saveWidgetSnapshot(for: buddy)
+                updateBuddyLiveActivityIfNeeded()
+            }
         }
     }
     @Published var isPlantAlive: Bool = UserDefaults.standard.object(forKey: "room_plant_alive") as? Bool ?? true {
@@ -353,6 +357,8 @@ final class AppState: ObservableObject {
                     catFillHue: result.catFillHue,
                     catFillSaturation: result.catFillSaturation,
                     catFillBrightness: result.catFillBrightness,
+                    hatAssetKey: result.hatAssetKey,
+                    hatSymbolName: result.hatSymbolName,
                     mood: result.mood,
                     streak: result.streak,
                     isFriend: true
@@ -505,6 +511,8 @@ final class AppState: ObservableObject {
     private func saveWidgetSnapshot(for buddy: BuddyState) {
         BuddyWidgetSnapshotStore.save(
             buddy,
+            mood: displayMood(for: buddy),
+            equippedHat: equippedHat,
             catFillHue: catFillHue,
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness
@@ -518,6 +526,8 @@ final class AppState: ObservableObject {
         Task {
             await BuddyLiveActivityController.startOrUpdate(
                 buddy: buddy,
+                mood: displayMood(for: buddy),
+                equippedHat: equippedHat,
                 frameIndex: 1,
                 catFillHue: catFillHue,
                 catFillSaturation: catFillSaturation,
@@ -529,6 +539,18 @@ final class AppState: ObservableObject {
     private func endBuddyLiveActivity() async {
         guard #available(iOS 16.2, *) else { return }
         await BuddyLiveActivityController.endAll()
+    }
+
+    func displayMood(for buddy: BuddyState) -> BuddyMood {
+        if let devBudgetUtilOverridePercent {
+            return .forBudgetUsageRatio(devBudgetUtilOverridePercent / 100)
+        }
+        return buddy.budgetMood
+    }
+
+    private var equippedHat: HatItem? {
+        guard let equippedHatId else { return nil }
+        return ownedHats.first(where: { $0.id == equippedHatId })
     }
 
     private func applyCatColor(from buddy: BuddyState) {
@@ -610,6 +632,10 @@ final class AppState: ObservableObject {
         }
         ownedHats = visibleHats
         equippedHatId = visibleHats.contains(where: { $0.id == response.equippedHatId }) ? response.equippedHatId : nil
+        if let buddy {
+            saveWidgetSnapshot(for: buddy)
+            updateBuddyLiveActivityIfNeeded()
+        }
 
         if
             let selectedHatId,

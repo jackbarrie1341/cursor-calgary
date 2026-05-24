@@ -329,10 +329,13 @@ app.get("/friends", requireAuth, async (req, res, next) => {
           (p.cat_fill_saturation::float / 100) as "catFillSaturation",
           (p.cat_fill_brightness::float / 100) as "catFillBrightness",
           coalesce(bs.mood::text, 'happy') as mood,
-          coalesce(bs.streak, 0) as streak
+          coalesce(bs.streak, 0) as streak,
+          hc.asset_key as "hatAssetKey",
+          hc.symbol_name as "hatSymbolName"
         from friendships f
         join profiles p on p.user_id = f.friend_user_id
         left join buddy_states bs on bs.user_id = p.user_id
+        left join hat_catalog hc on hc.id = p.equipped_hat_id and hc.is_active = true
         where f.user_id = $1
         order by f.created_at desc
       `,
@@ -362,6 +365,8 @@ app.get("/friends/search", requireAuth, async (req, res, next) => {
           (p.cat_fill_brightness::float / 100) as "catFillBrightness",
           coalesce(bs.mood::text, 'happy') as mood,
           coalesce(bs.streak, 0) as streak,
+          hc.asset_key as "hatAssetKey",
+          hc.symbol_name as "hatSymbolName",
           exists (
             select 1
             from friendships f
@@ -369,6 +374,7 @@ app.get("/friends/search", requireAuth, async (req, res, next) => {
           ) as "isFriend"
         from profiles p
         left join buddy_states bs on bs.user_id = p.user_id
+        left join hat_catalog hc on hc.id = p.equipped_hat_id and hc.is_active = true
         where p.user_id <> $1
           and p.username is not null
           and p.username ilike $2
@@ -429,9 +435,12 @@ app.post("/friends", requireAuth, async (req, res, next) => {
           (p.cat_fill_saturation::float / 100) as "catFillSaturation",
           (p.cat_fill_brightness::float / 100) as "catFillBrightness",
           coalesce(bs.mood::text, 'happy') as mood,
-          coalesce(bs.streak, 0) as streak
+          coalesce(bs.streak, 0) as streak,
+          hc.asset_key as "hatAssetKey",
+          hc.symbol_name as "hatSymbolName"
         from profiles p
         left join buddy_states bs on bs.user_id = p.user_id
+        left join hat_catalog hc on hc.id = p.equipped_hat_id and hc.is_active = true
         where p.user_id = $1
       `,
       [friendUserId]

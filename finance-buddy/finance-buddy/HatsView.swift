@@ -139,8 +139,8 @@ struct HatsView: View {
         } label: {
             VStack(spacing: 8) {
                 Group {
-                    if UIImage(named: hat.assetKey) != nil {
-                        Image(hat.assetKey)
+                    if let thumbnail = HatThumbnailCache.image(named: hat.assetKey) {
+                        Image(uiImage: thumbnail)
                             .resizable()
                             .interpolation(.none)
                             .scaledToFit()
@@ -150,7 +150,7 @@ struct HatsView: View {
                             .foregroundStyle(.primary)
                     }
                 }
-                .frame(height: 34)
+                .frame(height: 44)
 
                 Text(hat.name)
                     .font(DoodleFont.caption)
@@ -184,10 +184,7 @@ struct HatsView: View {
     }
 
     private var effectiveMood: BuddyMood {
-        if let overridePercent = appState.devBudgetUtilOverridePercent {
-            return .forBudgetUsageRatio(overridePercent / 100)
-        }
-        return buddy.mood
+        appState.displayMood(for: buddy)
     }
 
     private var roomBackgroundDecor: some View {
@@ -234,5 +231,72 @@ struct HatsView: View {
 
     private var plantLineAssetName: String {
         appState.isPlantAlive ? "Plant_Healthy" : "Plant_Dead"
+    }
+}
+
+private enum HatThumbnailCache {
+    private static var cache: [String: UIImage] = [:]
+
+    static func image(named assetName: String) -> UIImage? {
+        if let cached = cache[assetName] {
+            return cached
+        }
+        guard let image = UIImage(named: assetName) else { return nil }
+        let trimmed = image.trimmingTransparentPixels() ?? image
+        cache[assetName] = trimmed
+        return trimmed
+    }
+}
+
+private extension UIImage {
+    func trimmingTransparentPixels(alphaThreshold: UInt8 = 8) -> UIImage? {
+        guard let cgImage else { return nil }
+
+        let width = cgImage.width
+        let height = cgImage.height
+        let bytesPerPixel = 4
+        let bytesPerRow = width * bytesPerPixel
+        var pixels = [UInt8](repeating: 0, count: height * bytesPerRow)
+
+        guard let context = CGContext(
+            data: &pixels,
+            width: width,
+            height: height,
+            bitsPerComponent: 8,
+            bytesPerRow: bytesPerRow,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ) else {
+            return nil
+        }
+
+        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+
+        var minX = width
+        var minY = height
+        var maxX = -1
+        var maxY = -1
+
+        for y in 0..<height {
+            for x in 0..<width {
+                let alpha = pixels[(y * bytesPerRow) + (x * bytesPerPixel) + 3]
+                guard alpha > alphaThreshold else { continue }
+                minX = min(minX, x)
+                minY = min(minY, y)
+                maxX = max(maxX, x)
+                maxY = max(maxY, y)
+            }
+        }
+
+        guard maxX >= minX, maxY >= minY else { return nil }
+
+        let cropRect = CGRect(
+            x: minX,
+            y: minY,
+            width: maxX - minX + 1,
+            height: maxY - minY + 1
+        )
+        guard let cropped = cgImage.cropping(to: cropRect) else { return nil }
+        return UIImage(cgImage: cropped, scale: scale, orientation: imageOrientation)
     }
 }

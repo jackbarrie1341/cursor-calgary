@@ -8,6 +8,8 @@ struct BuddyWidgetSnapshot: Codable {
     let catFillHue: Double
     let catFillSaturation: Double
     let catFillBrightness: Double
+    let hatAssetKey: String?
+    let hatSymbolName: String?
     let updatedAt: Date
 }
 
@@ -21,17 +23,21 @@ enum BuddyWidgetSnapshotStore {
 
     static func save(
         _ buddy: BuddyState,
+        mood: BuddyMood,
+        equippedHat: HatItem?,
         catFillHue: Double,
         catFillSaturation: Double,
         catFillBrightness: Double
     ) {
         let snapshot = BuddyWidgetSnapshot(
             buddyName: buddy.buddyName,
-            mood: buddy.mood.rawValue,
+            mood: mood.rawValue,
             spentTodayCents: buddy.spentTodayCents,
             catFillHue: catFillHue,
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness,
+            hatAssetKey: equippedHat?.assetKey,
+            hatSymbolName: equippedHat?.symbolName,
             updatedAt: Date()
         )
 

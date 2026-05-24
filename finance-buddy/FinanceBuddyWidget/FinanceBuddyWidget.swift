@@ -9,6 +9,8 @@ struct BuddyWidgetSnapshot: Codable {
     let catFillHue: Double?
     let catFillSaturation: Double?
     let catFillBrightness: Double?
+    let hatAssetKey: String?
+    let hatSymbolName: String?
     let updatedAt: Date
 }
 
@@ -112,6 +114,21 @@ private struct BuddyWidgetImageView: View {
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
+
+            if let hatAssetName = snapshot.hatAssetName {
+                Image(hatAssetName)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .rotationEffect(snapshot.hatRotation)
+                    .offset(snapshot.hatOffset)
+            } else if let hatSymbolName = snapshot.hatSymbolName {
+                Image(systemName: hatSymbolName)
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.2), radius: 2, y: 1)
+                    .offset(y: -28)
+            }
         }
     }
 }
@@ -137,6 +154,8 @@ private extension BuddyWidgetSnapshot {
         catFillHue: 0.04,
         catFillSaturation: 0.48,
         catFillBrightness: 1.0,
+        hatAssetKey: nil,
+        hatSymbolName: nil,
         updatedAt: .now
     )
 
@@ -182,6 +201,24 @@ private extension BuddyWidgetSnapshot {
             saturation: catFillSaturation ?? 0.48,
             brightness: catFillBrightness ?? 1.0
         )
+    }
+
+    var hatAssetName: String? {
+        guard let hatAssetKey, UIImage(named: hatAssetKey) != nil else { return nil }
+        return hatAssetKey
+    }
+
+    var hatOffset: CGSize {
+        guard mood == "sick", hatAssetKey != nil else { return .zero }
+        if hatAssetKey == "Hat_Sprout" {
+            return CGSize(width: -4, height: 2)
+        }
+        return CGSize(width: -4, height: -4)
+    }
+
+    var hatRotation: Angle {
+        guard mood == "sick", hatAssetKey != "Hat_Sprout" else { return .zero }
+        return .degrees(-8)
     }
 }
 

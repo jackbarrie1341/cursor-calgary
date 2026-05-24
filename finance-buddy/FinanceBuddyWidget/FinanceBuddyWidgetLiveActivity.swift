@@ -17,6 +17,8 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
         let catFillHue: Double
         let catFillSaturation: Double
         let catFillBrightness: Double
+        let hatAssetKey: String?
+        let hatSymbolName: String?
     }
 
     let name: String
@@ -77,6 +79,21 @@ private struct LiveActivityBuddyImageView: View {
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
+
+                if let hatAssetName = state.hatAssetName {
+                    Image(hatAssetName)
+                        .resizable()
+                        .interpolation(.none)
+                        .scaledToFit()
+                        .rotationEffect(state.hatRotation)
+                        .offset(state.hatOffset)
+                } else if let hatSymbolName = state.hatSymbolName {
+                    Image(systemName: hatSymbolName)
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                        .offset(y: -9)
+                }
             }
         }
     }
@@ -131,6 +148,24 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
     var percentText: String {
         "\(dailyBudgetSpentPercent)%"
     }
+
+    var hatAssetName: String? {
+        guard let hatAssetKey, UIImage(named: hatAssetKey) != nil else { return nil }
+        return hatAssetKey
+    }
+
+    var hatOffset: CGSize {
+        guard mood == "sick", hatAssetKey != nil else { return .zero }
+        if hatAssetKey == "Hat_Sprout" {
+            return CGSize(width: -1.5, height: 0.7)
+        }
+        return CGSize(width: -1.5, height: -1.2)
+    }
+
+    var hatRotation: Angle {
+        guard mood == "sick", hatAssetKey != "Hat_Sprout" else { return .zero }
+        return .degrees(-8)
+    }
 }
 
 #Preview("Notification", as: .content, using: FinanceBuddyWidgetAttributes.preview) {
@@ -154,7 +189,9 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
             dailyBudgetSpentPercent: 42,
             catFillHue: 0.04,
             catFillSaturation: 0.48,
-            catFillBrightness: 1.0
+            catFillBrightness: 1.0,
+            hatAssetKey: "hat_santa",
+            hatSymbolName: "snowflake"
         )
     }
 
@@ -165,7 +202,9 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
             dailyBudgetSpentPercent: 43,
             catFillHue: 0.04,
             catFillSaturation: 0.48,
-            catFillBrightness: 1.0
+            catFillBrightness: 1.0,
+            hatAssetKey: "hat_santa",
+            hatSymbolName: "snowflake"
         )
     }
 }

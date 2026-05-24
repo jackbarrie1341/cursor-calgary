@@ -315,10 +315,7 @@ struct HomeView: View {
     }
 
     private var displayedMood: BuddyMood {
-        if let overridePercent = appState.devBudgetUtilOverridePercent {
-            return .forBudgetUsageRatio(overridePercent / 100)
-        }
-        return appState.financeCatVerdict?.verdict.mood.buddyMood ?? buddy.mood
+        appState.displayMood(for: buddy)
     }
 
     private var moodColor: Color {
@@ -571,10 +568,8 @@ private struct SettingsView: View {
     }
 
     private var effectiveMood: BuddyMood {
-        if let overridePercent = appState.devBudgetUtilOverridePercent {
-            return .forBudgetUsageRatio(overridePercent / 100)
-        }
-        return appState.buddy?.mood ?? .happy
+        guard let buddy = appState.buddy else { return .happy }
+        return appState.displayMood(for: buddy)
     }
 
     private var moodColor: Color {
