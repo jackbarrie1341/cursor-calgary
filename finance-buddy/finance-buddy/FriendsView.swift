@@ -3,6 +3,7 @@ import SwiftUI
 struct FriendsView: View {
     @EnvironmentObject private var appState: AppState
     @State private var query = ""
+    @State private var isShowingSearch = false
     private let columns = [
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
@@ -11,22 +12,29 @@ struct FriendsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .center) {
                     Text("Friends")
                         .font(DoodleFont.largeTitle)
                         .doodleTracking(-1.2)
-                    Text("Add buddies by code. Friends only see mood and streak.")
-                        .font(DoodleFont.body)
-                        .foregroundStyle(.secondary)
+
+                    Spacer()
+
+                    Button {
+                        isShowingSearch = true
+                    } label: {
+                        Image("pawsearchlogo")
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                            .frame(width: 34, height: 34)
+                            .frame(width: 48, height: 48)
+                            .background(Color(.systemBackground), in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Find a buddy")
                 }
 
-                searchCard
-
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Your buddy crew")
-                        .font(DoodleFont.title2)
-                        .doodleTracking(-0.9)
-
                     if appState.friends.isEmpty {
                         emptyState
                     } else {
@@ -47,13 +55,25 @@ struct FriendsView: View {
         .refreshable {
             await appState.loadFriends()
         }
+        .sheet(isPresented: $isShowingSearch) {
+            NavigationStack {
+                searchCard
+                    .padding()
+                    .navigationTitle("Find a buddy")
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button("Done") {
+                                isShowingSearch = false
+                            }
+                        }
+                    }
+            }
+            .presentationDetents([.medium, .large])
+        }
     }
 
     private var searchCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Find a buddy")
-                .font(DoodleFont.headline)
-
             HStack {
                 TextField("buddy_code", text: $query)
                     .textInputAutocapitalization(.never)
@@ -114,7 +134,7 @@ struct FriendsView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("No friends yet")
                 .font(DoodleFont.headline)
-            Text("Search for a buddy code to add someone. Dollar amounts never appear here.")
+            Text("Tap the paw button to add someone by buddy code.")
                 .font(DoodleFont.body)
                 .foregroundStyle(.secondary)
         }

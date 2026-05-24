@@ -209,7 +209,9 @@ app.get("/spending", requireAuth, async (req, res, next) => {
           coalesce(merchant_name, name) as name,
           amount_cents as "amountCents",
           coalesce(authorized_date, posted_date)::text as date,
-          pending
+          pending,
+          raw #>> '{personal_finance_category,primary}' as "categoryPrimary",
+          raw #>> '{personal_finance_category,detailed}' as "categoryDetailed"
         from transactions
         where user_id = $1
           and removed = false
@@ -218,6 +220,24 @@ app.get("/spending", requireAuth, async (req, res, next) => {
         limit 50
       `,
       [authReq.userId]
+    );
+
+    const categoryBreakdownResult = await pool.query(
+      `
+        select
+          coalesce(nullif(raw #>> '{personal_finance_category,primary}', ''), 'UNCATEGORIZED') as category,
+          sum(amount_cents)::int as "totalCents",
+          count(*)::int as count
+        from transactions
+        where user_id = $1
+          and removed = false
+          and amount_cents > 0
+          and coalesce(authorized_date, posted_date) >= $2
+          and coalesce(authorized_date, posted_date) <= $3
+        group by coalesce(nullif(raw #>> '{personal_finance_category,primary}', ''), 'UNCATEGORIZED')
+        order by sum(amount_cents) desc
+      `,
+      [authReq.userId, monthStart, today]
     );
 
     const breakdownResult = await pool.query(
@@ -258,6 +278,7 @@ app.get("/spending", requireAuth, async (req, res, next) => {
       monthStartDate: monthStart,
       monthTotalCents: totalResult.rows[0]?.monthTotalCents ?? 0,
       transactions: transactionsResult.rows,
+      categoryBreakdown: categoryBreakdownResult.rows,
       monthlyBreakdown: breakdownResult.rows
     });
   } catch (error) {

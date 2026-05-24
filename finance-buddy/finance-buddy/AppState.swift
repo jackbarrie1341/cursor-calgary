@@ -42,6 +42,12 @@ final class AppState: ObservableObject {
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?
+    @Published var isLobbyMusicEnabled: Bool = UserDefaults.standard.object(forKey: "lobby_music_enabled") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(isLobbyMusicEnabled, forKey: "lobby_music_enabled")
+            LobbyMusicPlayer.shared.setEnabled(isLobbyMusicEnabled)
+        }
+    }
     @Published var isBuddyLiveActivityEnabled: Bool = UserDefaults.standard.object(forKey: "buddy_live_activity_enabled") as? Bool ?? false {
         didSet {
             UserDefaults.standard.set(isBuddyLiveActivityEnabled, forKey: "buddy_live_activity_enabled")
@@ -122,6 +128,18 @@ final class AppState: ObservableObject {
 
     var backend: BackendClient {
         BackendClient(baseURL: AppConfig.backendBaseURL, accessToken: accessToken)
+    }
+
+    init() {
+        LobbyMusicPlayer.shared.setEnabled(isLobbyMusicEnabled)
+    }
+
+    func resumeLobbyMusicIfEnabled() {
+        LobbyMusicPlayer.shared.setEnabled(isLobbyMusicEnabled)
+    }
+
+    func pauseLobbyMusic() {
+        LobbyMusicPlayer.shared.pause()
     }
 
     func start() async {

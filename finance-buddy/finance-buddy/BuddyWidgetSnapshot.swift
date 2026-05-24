@@ -5,6 +5,9 @@ struct BuddyWidgetSnapshot: Codable {
     let buddyName: String
     let mood: String
     let spentTodayCents: Int
+    let spentWeekCents: Int
+    let spentMonthCents: Int
+    let dailyAllowanceCents: Int
     let catFillHue: Double
     let catFillSaturation: Double
     let catFillBrightness: Double
@@ -33,6 +36,9 @@ enum BuddyWidgetSnapshotStore {
             buddyName: buddy.buddyName,
             mood: mood.rawValue,
             spentTodayCents: buddy.spentTodayCents,
+            spentWeekCents: buddy.spentWeekCents,
+            spentMonthCents: buddy.spentMonthCents,
+            dailyAllowanceCents: buddy.dailyAllowanceCents,
             catFillHue: catFillHue,
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness,
@@ -44,10 +50,12 @@ enum BuddyWidgetSnapshotStore {
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         defaults.set(data, forKey: key)
         WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddyWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddySpendingWidget")
     }
 
     static func clear() {
         defaults.removeObject(forKey: key)
         WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddyWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddySpendingWidget")
     }
 }

@@ -252,6 +252,7 @@ struct SpendingResponse: Codable, Equatable {
     let monthStartDate: String
     let monthTotalCents: Int
     let transactions: [SpendingTransaction]
+    let categoryBreakdown: [CategorySpendingBreakdown]
     let monthlyBreakdown: [MonthlySpendingBreakdown]
 }
 
@@ -261,6 +262,16 @@ struct SpendingTransaction: Codable, Identifiable, Equatable {
     let amountCents: Int
     let date: String?
     let pending: Bool
+    let categoryPrimary: String?
+    let categoryDetailed: String?
+}
+
+struct CategorySpendingBreakdown: Codable, Identifiable, Equatable {
+    let category: String
+    let totalCents: Int
+    let count: Int
+
+    var id: String { category }
 }
 
 struct MonthlySpendingBreakdown: Codable, Identifiable, Equatable {

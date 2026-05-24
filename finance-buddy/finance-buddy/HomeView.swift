@@ -450,6 +450,12 @@ private struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle("Lobby music", isOn: $appState.isLobbyMusicEnabled)
+                } header: {
+                    Text("Audio")
+                }
+
+                Section {
                     Toggle("Show buddy in Dynamic Island", isOn: $appState.isBuddyLiveActivityEnabled)
                 } header: {
                     Text("Dynamic Island")

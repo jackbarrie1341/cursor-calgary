@@ -6,6 +6,9 @@ struct BuddyWidgetSnapshot: Codable {
     let buddyName: String
     let mood: String
     let spentTodayCents: Int
+    let spentWeekCents: Int?
+    let spentMonthCents: Int?
+    let dailyAllowanceCents: Int?
     let catFillHue: Double?
     let catFillSaturation: Double?
     let catFillBrightness: Double?
@@ -66,33 +69,100 @@ struct BuddyEntry: TimelineEntry {
 
 struct FinanceBuddyWidgetEntryView: View {
     var entry: Provider.Entry
+    @Environment(\.widgetFamily) private var widgetFamily
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: widgetFamily == .systemSmall ? 8 : 16) {
             BuddyWidgetImageView(snapshot: entry.snapshot)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(width: widgetFamily == .systemSmall ? 66 : 116)
+                .frame(maxHeight: .infinity)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(entry.snapshot.buddyName)
-                    .font(WidgetFont.font(18))
+            VStack(alignment: .leading, spacing: widgetFamily == .systemSmall ? 3 : 5) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(entry.snapshot.buddyName)
+                        .font(WidgetFont.font(widgetFamily == .systemSmall ? 15 : 19))
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+
+                    Text(entry.snapshot.moodTitle)
+                        .font(WidgetFont.font(widgetFamily == .systemSmall ? 12 : 14))
+                        .foregroundStyle(entry.snapshot.moodColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+
+                Text(entry.snapshot.spentTodayCents.moneyText)
+                    .font(WidgetFont.font(widgetFamily == .systemSmall ? 20 : 25))
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
 
-                Text(entry.snapshot.moodTitle)
-                    .font(WidgetFont.font(15))
-                    .foregroundStyle(entry.snapshot.moodColor)
-                    .lineLimit(1)
-
-                Text(entry.snapshot.spentTodayCents.moneyText)
-                    .font(WidgetFont.font(20))
+                Text(entry.snapshot.dailyBudgetText)
+                    .font(WidgetFont.font(widgetFamily == .systemSmall ? 10 : 12))
+                    .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .minimumScaleFactor(0.65)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         }
-        .padding(8)
+        .padding(widgetFamily == .systemSmall ? 10 : 14)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .containerBackground(Color(.systemBackground), for: .widget)
+    }
+}
+
+struct FinanceBuddySpendingWidgetEntryView: View {
+    var entry: Provider.Entry
+
+    var body: some View {
+        HStack(spacing: 16) {
+            VStack(spacing: 3) {
+                Text(entry.snapshot.buddyName)
+                    .font(WidgetFont.font(17))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+
+                BuddyWidgetImageView(snapshot: entry.snapshot)
+                    .frame(width: 98, height: 76)
+
+                Text(entry.snapshot.moodTitle)
+                    .font(WidgetFont.font(13))
+                    .foregroundStyle(entry.snapshot.moodColor)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+            .frame(width: 116)
+            .frame(maxHeight: .infinity)
+
+            VStack(alignment: .leading, spacing: 8) {
+                spendingLine(cents: entry.snapshot.spentTodayCents, label: "day")
+                spendingLine(cents: entry.snapshot.spentWeekCents ?? 0, label: "week")
+                spendingLine(cents: entry.snapshot.spentMonthCents ?? 0, label: "month")
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(Color(.systemBackground), for: .widget)
+    }
+
+    private func spendingLine(cents: Int, label: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 7) {
+            Text(cents.compactMoneyText)
+                .font(WidgetFont.font(22))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.62)
+                .monospacedDigit()
+
+            Text(label)
+                .font(WidgetFont.font(12))
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+        }
     }
 }
 
@@ -146,11 +216,27 @@ struct FinanceBuddyWidget: Widget {
     }
 }
 
+struct FinanceBuddySpendingWidget: Widget {
+    let kind: String = "FinanceBuddySpendingWidget"
+
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: Provider()) { entry in
+            FinanceBuddySpendingWidgetEntryView(entry: entry)
+        }
+        .configurationDisplayName("Finance Buddy Spending")
+        .description("See your buddy and spending totals.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
 private extension BuddyWidgetSnapshot {
     static let placeholder = BuddyWidgetSnapshot(
         buddyName: "Bean",
         mood: "happy",
         spentTodayCents: 0,
+        spentWeekCents: 0,
+        spentMonthCents: 0,
+        dailyAllowanceCents: 0,
         catFillHue: 0.04,
         catFillSaturation: 0.48,
         catFillBrightness: 1.0,
@@ -203,6 +289,11 @@ private extension BuddyWidgetSnapshot {
         )
     }
 
+    var dailyBudgetText: String {
+        guard let dailyAllowanceCents else { return "of daily budget" }
+        return "of \(dailyAllowanceCents.moneyText) daily budget"
+    }
+
     var hatAssetName: String? {
         guard let hatAssetKey, UIImage(named: hatAssetKey) != nil else { return nil }
         return hatAssetKey
@@ -226,6 +317,15 @@ private extension Int {
     var moneyText: String {
         let value = Decimal(self) / 100
         return value.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD"))
+    }
+
+    var compactMoneyText: String {
+        let value = Decimal(self) / 100
+        return value.formatted(
+            .currency(code: Locale.current.currency?.identifier ?? "USD")
+                .precision(.fractionLength(0...0))
+                .notation(.compactName)
+        )
     }
 }
 
