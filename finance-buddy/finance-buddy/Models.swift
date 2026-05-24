@@ -8,19 +8,19 @@ enum BuddyMood: String, Codable, CaseIterable {
 
     var title: String {
         switch self {
-        case .happy: "Happy"
-        case .nervous: "Nervous"
-        case .hungry: "Hungry"
-        case .sick: "Sick"
+        case .happy: "Cheesing"
+        case .nervous: "Worried"
+        case .hungry: "Broke"
+        case .sick: "Money Spread"
         }
     }
 
     var symbolName: String {
         switch self {
-        case .happy: "face.smiling"
+        case .happy: "face.smiling.inverse"
         case .nervous: "exclamationmark.triangle"
-        case .hungry: "fork.knife"
-        case .sick: "bandage"
+        case .hungry: "xmark.octagon"
+        case .sick: "banknote"
         }
     }
 }
