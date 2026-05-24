@@ -31,3 +31,14 @@ enum AuthFlowError: LocalizedError {
         }
     }
 }
+
+enum AuthSessionError: LocalizedError {
+    case missingSession
+
+    var errorDescription: String? {
+        switch self {
+        case .missingSession:
+            "Please sign in again."
+        }
+    }
+}
