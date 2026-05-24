@@ -81,7 +81,7 @@ struct HatsView: View {
 
                 BuddyImageView(
                     mood: buddy.mood,
-                    overrideAssetName: appState.debugBuddyAssetName,
+                    overrideAssetName: nil,
                     fallbackSymbolName: buddy.mood.symbolName,
                     fallbackColor: moodColor,
                     hatAssetKey: previewHat?.assetKey,
