@@ -76,6 +76,8 @@ struct HomeView: View {
                             }
                         }
                     }
+
+                    purchaseReactionOverlay
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -163,6 +165,22 @@ struct HomeView: View {
 
     }
 
+    @ViewBuilder
+    private var purchaseReactionOverlay: some View {
+        if let cents = appState.pendingPurchaseAmountCents {
+            let frames = cents > 0
+                ? PurchaseReactionOverlayView.sadFrames
+                : PurchaseReactionOverlayView.happyFrames
+            PurchaseReactionOverlayView(frameAssetNames: frames)
+                .frame(width: 200, height: 200)
+                .offset(x: 0, y: -120)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: appState.pendingPurchaseAmountCents)
+        }
+    }
+
     private var roomBackgroundDecor: some View {
         ZStack(alignment: .bottom) {
 //            Image("Text_bubble")
@@ -180,6 +198,14 @@ struct HomeView: View {
                 .scaledToFit()
                 .frame(width: 400, height: 270)
                 .offset(x: 0, y: 120)
+            
+            Image("Rug")
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 400, height: 245)
+                .offset(x: 0, y: -6)
+                .clipped()
             
             Image("Plant_Fill")
                 .resizable()
@@ -440,6 +466,7 @@ private struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var budgetUtilOverrideInput = ""
     @State private var budgetUtilOverrideError: String?
+    @State private var simulatePurchaseInput = "5.00"
 
     var body: some View {
         NavigationStack {
@@ -595,6 +622,37 @@ private struct SettingsView: View {
                     } label: {
                         Label("Retry cat analysis", systemImage: "sparkles")
                     }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Simulate purchase")
+                            .font(DoodleFont.caption)
+                            .foregroundStyle(.secondary)
+
+                        TextField("Amount ($)", text: $simulatePurchaseInput)
+                            .keyboardType(.decimalPad)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
+                        HStack(spacing: 8) {
+                            Button {
+                                applySimulatedPurchase(sign: 1)
+                            } label: {
+                                Label("Spend", systemImage: "minus.circle.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.red)
+
+                            Button {
+                                applySimulatedPurchase(sign: -1)
+                            } label: {
+                                Label("Refund", systemImage: "plus.circle.fill")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.borderedProminent)
+                            .tint(.green)
+                        }
+                    }
                 } header: {
                     Text("Developer")
                 }
@@ -700,6 +758,15 @@ private struct SettingsView: View {
         }
         appState.devBudgetUtilOverridePercent = value
         budgetUtilOverrideError = nil
+    }
+
+    private func applySimulatedPurchase(sign: Int) {
+        let normalized = simulatePurchaseInput
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        guard let dollars = Double(normalized), dollars > 0 else { return }
+        let cents = Int((dollars * 100).rounded()) * sign
+        appState.simulatePurchase(amountCents: cents)
     }
 
     private func colorSlider(_ title: String, value: Binding<Double>) -> some View {
