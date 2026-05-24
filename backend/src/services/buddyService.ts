@@ -47,6 +47,11 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
     return await recomputeBuddyState(userId);
   }
 
+  const today = localDateString(new Date(), env.APP_TIME_ZONE);
+  if (state.stateDate !== today) {
+    return await recomputeBuddyState(userId);
+  }
+
   return {
     mood: state.mood,
     spentTodayCents: state.spentTodayCents,

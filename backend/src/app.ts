@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { CountryCode, Products } from "plaid";
 import { z } from "zod";
 import { requireAuth, type AuthenticatedRequest } from "./auth.js";
-import { calculateDailyAllowanceCents, localDateString } from "./buddy/engine.js";
+import { calculateDailyAllowanceCents, localDateString, monthStartForDateString } from "./buddy/engine.js";
 import { env } from "./config/env.js";
 import { db, pool } from "./db/client.js";
 import { buddyStates, plaidItems, profiles } from "./db/schema.js";
@@ -193,7 +193,7 @@ app.get("/spending", requireAuth, async (req, res, next) => {
   try {
     const authReq = req as AuthenticatedRequest;
     const today = localDateString(new Date(), env.APP_TIME_ZONE);
-    const monthStart = `${today.slice(0, 8)}01`;
+    const monthStart = monthStartForDateString(today);
 
     const transactionsResult = await pool.query(
       `
@@ -233,15 +233,23 @@ app.get("/spending", requireAuth, async (req, res, next) => {
       [authReq.userId, monthStart, today]
     );
 
-    const monthTotalCents = breakdownResult.rows.reduce(
-      (total: number, row: { totalCents: number }) => total + row.totalCents,
-      0
+    const totalResult = await pool.query(
+      `
+        select coalesce(sum(amount_cents), 0)::int as "monthTotalCents"
+        from transactions
+        where user_id = $1
+          and removed = false
+          and amount_cents > 0
+          and coalesce(authorized_date, posted_date) >= $2
+          and coalesce(authorized_date, posted_date) <= $3
+      `,
+      [authReq.userId, monthStart, today]
     );
 
     res.json({
       asOfDate: today,
       monthStartDate: monthStart,
-      monthTotalCents,
+      monthTotalCents: totalResult.rows[0]?.monthTotalCents ?? 0,
       transactions: transactionsResult.rows,
       monthlyBreakdown: breakdownResult.rows
     });
