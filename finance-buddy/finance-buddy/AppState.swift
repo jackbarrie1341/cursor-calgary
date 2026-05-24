@@ -7,6 +7,7 @@ final class AppState: ObservableObject {
     @Published var buddy: BuddyState? {
         didSet {
             if let buddy {
+                detectPurchaseReaction(from: buddy)
                 Task { @MainActor in
                     self.applyCatColor(from: buddy)
                     self.saveWidgetSnapshot(for: buddy)
@@ -14,6 +15,9 @@ final class AppState: ObservableObject {
                     self.updateBuddyLiveActivityIfNeeded()
                 }
             } else {
+                lastKnownSpentTodayCents = nil
+                pendingPurchaseAmountCents = nil
+                purchaseReactionTask?.cancel()
                 Task { @MainActor in
                     BuddyWidgetSnapshotStore.clear()
                     self.ownedHats = []
@@ -128,6 +132,9 @@ final class AppState: ObservableObject {
     private var realtimeTask: Task<Void, Never>?
     private var catColorPersistTask: Task<Void, Never>?
     private var financeCatTask: Task<Void, Never>?
+    private var purchaseReactionTask: Task<Void, Never>?
+    private var lastKnownSpentTodayCents: Int?
+    @Published private(set) var pendingPurchaseAmountCents: Int?
     private var liveActivityAnimationTask: Task<Void, Never>?
     private var liveActivityFrameIndex = 1
     private var isApplyingRemoteCatColor = false
@@ -622,6 +629,45 @@ final class AppState: ObservableObject {
                 catFillSaturation: catFillSaturation,
                 catFillBrightness: catFillBrightness
             )
+        }
+    }
+
+    func simulatePurchase(amountCents: Int) {
+        guard let current = buddy else { return }
+        let updated = BuddyState(
+            mood: current.mood,
+            spentTodayCents: max(0, current.spentTodayCents + amountCents),
+            spentWeekCents: max(0, current.spentWeekCents + amountCents),
+            spentMonthCents: max(0, current.spentMonthCents + amountCents),
+            dailyAllowanceCents: current.dailyAllowanceCents,
+            streak: current.streak,
+            asOfDate: current.asOfDate,
+            buddyName: current.buddyName,
+            catFillHue: current.catFillHue,
+            catFillSaturation: current.catFillSaturation,
+            catFillBrightness: current.catFillBrightness,
+            isLinked: current.isLinked,
+            hasOnboarded: current.hasOnboarded,
+            ownedHats: current.ownedHats,
+            equippedHatId: current.equippedHatId
+        )
+        buddy = updated
+    }
+
+    private func detectPurchaseReaction(from buddy: BuddyState) {
+        defer { lastKnownSpentTodayCents = buddy.spentTodayCents }
+
+        guard let previous = lastKnownSpentTodayCents else { return }
+        let delta = buddy.spentTodayCents - previous
+        guard delta != 0 else { return }
+
+        pendingPurchaseAmountCents = delta
+        purchaseReactionTask?.cancel()
+        purchaseReactionTask = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            guard let self, !Task.isCancelled else { return }
+            self.pendingPurchaseAmountCents = nil
+            self.updateBuddyLiveActivityIfNeeded()
         }
     }
 
