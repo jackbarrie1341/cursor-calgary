@@ -95,6 +95,22 @@ struct BackendClient {
         )
     }
 
+    func getHats() async throws -> HatsResponse {
+        try await send(
+            path: "/hats",
+            method: "GET",
+            body: Optional<EmptyBody>.none
+        )
+    }
+
+    func updateEquippedHat(hatId: String?) async throws -> HatsResponse {
+        try await send(
+            path: "/hats/equipped",
+            method: "PATCH",
+            body: EquippedHatRequest(hatId: hatId)
+        )
+    }
+
     private func send<Response: Decodable, Body: Encodable>(
         path: String,
         method: String,
@@ -160,6 +176,23 @@ private struct CatColorRequest: Encodable {
     let catFillHue: Double
     let catFillSaturation: Double
     let catFillBrightness: Double
+}
+
+private struct EquippedHatRequest: Encodable {
+    let hatId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case hatId
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let hatId {
+            try container.encode(hatId, forKey: .hatId)
+        } else {
+            try container.encodeNil(forKey: .hatId)
+        }
+    }
 }
 
 private struct EmptyBody: Codable {}

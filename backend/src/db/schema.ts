@@ -25,6 +25,7 @@ export const profiles = pgTable(
     monthlyBudgetCents: integer("monthly_budget_cents").notNull(),
     dailyAllowanceCents: integer("daily_allowance_cents").notNull(),
     buddyName: text("buddy_name").notNull().default("Buddy"),
+    equippedHatId: uuid("equipped_hat_id").references(() => hatCatalog.id, { onDelete: "set null" }),
     catFillHue: integer("cat_fill_hue").notNull().default(4),
     catFillSaturation: integer("cat_fill_saturation").notNull().default(48),
     catFillBrightness: integer("cat_fill_brightness").notNull().default(100),
@@ -33,6 +34,43 @@ export const profiles = pgTable(
   },
   (table) => ({
     usernameUnique: uniqueIndex("profiles_username_unique").on(table.username)
+  })
+);
+
+export const hatCatalog = pgTable(
+  "hat_catalog",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    assetKey: text("asset_key").notNull(),
+    symbolName: text("symbol_name").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex("hat_catalog_slug_unique").on(table.slug)
+  })
+);
+
+export const userOwnedHats = pgTable(
+  "user_owned_hats",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => profiles.userId, { onDelete: "cascade" }),
+    hatId: uuid("hat_id")
+      .notNull()
+      .references(() => hatCatalog.id, { onDelete: "cascade" }),
+    ownedAt: timestamp("owned_at", { withTimezone: true }).notNull().defaultNow()
+  },
+  (table) => ({
+    userIdIdx: index("user_owned_hats_user_id_idx").on(table.userId),
+    hatIdIdx: index("user_owned_hats_hat_id_idx").on(table.hatId),
+    userHatUnique: uniqueIndex("user_owned_hats_user_hat_unique").on(table.userId, table.hatId)
   })
 );
 
@@ -120,13 +158,33 @@ export const friendships = pgTable(
 
 export const profilesRelations = relations(profiles, ({ many, one }) => ({
   plaidItems: many(plaidItems),
-  buddyState: one(buddyStates)
+  buddyState: one(buddyStates),
+  ownedHats: many(userOwnedHats),
+  equippedHat: one(hatCatalog, {
+    fields: [profiles.equippedHatId],
+    references: [hatCatalog.id]
+  })
 }));
 
 export const plaidItemsRelations = relations(plaidItems, ({ one }) => ({
   profile: one(profiles, {
     fields: [plaidItems.userId],
     references: [profiles.userId]
+  })
+}));
+
+export const hatCatalogRelations = relations(hatCatalog, ({ many }) => ({
+  owners: many(userOwnedHats)
+}));
+
+export const userOwnedHatsRelations = relations(userOwnedHats, ({ one }) => ({
+  profile: one(profiles, {
+    fields: [userOwnedHats.userId],
+    references: [profiles.userId]
+  }),
+  hat: one(hatCatalog, {
+    fields: [userOwnedHats.hatId],
+    references: [hatCatalog.id]
   })
 }));
 

@@ -18,43 +18,49 @@ struct HomeView: View {
             catFillSaturation: nil,
             catFillBrightness: nil,
             isLinked: false,
-            hasOnboarded: true
+            hasOnboarded: true,
+            ownedHats: [],
+            equippedHatId: nil
         )
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                HStack(alignment: .center) {
-                    Text("Finance Buddy")
-                        .font(DoodleFont.largeTitle)
-                        .doodleTracking(-1.2)
+        ZStack {
+            homeBackgroundColor
+                .ignoresSafeArea()
 
-                    Spacer()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    HStack(alignment: .center) {
+                        Text("Finance Buddy")
+                            .font(DoodleFont.largeTitle)
+                            .doodleTracking(-1.2)
 
-                    Button {
-                        isShowingSettings = true
-                    } label: {
-                        Image("settings")
-                            .resizable()
-                            .interpolation(.none)
-                            .scaledToFit()
-                            .frame(width: 28, height: 28)
-                            .frame(width: 44, height: 44)
-                            .background(Color(.systemBackground), in: Circle())
+                        Spacer()
+
+                        Button {
+                            isShowingSettings = true
+                        } label: {
+                            Image("settings")
+                                .resizable()
+                                .interpolation(.none)
+                                .scaledToFit()
+                                .frame(width: 28, height: 28)
+                                .frame(width: 44, height: 44)
+                                .background(Color(.systemBackground), in: Circle())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Settings")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Settings")
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                buddyCard
-                spendCard
-                controls
+                    buddyCard
+                    spendCard
+                    controls
+                }
+                .padding()
             }
-            .padding()
         }
-        .background(Color(.systemGroupedBackground))
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
                 .environmentObject(appState)
@@ -63,13 +69,7 @@ struct HomeView: View {
 
     private var buddyCard: some View {
         VStack(spacing: 16) {
-            BuddyImageView(
-                mood: buddy.mood,
-                overrideAssetName: appState.debugBuddyAssetName,
-                fallbackSymbolName: buddy.mood.symbolName,
-                fallbackColor: moodColor,
-                fillColor: catFillColor
-            )
+            buddyHeroScene
 
             VStack(spacing: 6) {
                 Text(buddy.buddyName)
@@ -92,8 +92,73 @@ struct HomeView: View {
             .background(Color(.secondarySystemGroupedBackground), in: Capsule())
         }
         .frame(maxWidth: .infinity)
-        .padding(24)
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .padding(20)
+        .background(Color(.systemBackground).opacity(0.92), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var buddyHeroScene: some View {
+        ZStack(alignment: .bottom) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [homeBackgroundColor.opacity(0.86), homeBackgroundColor.opacity(0.64)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(.white.opacity(0.28), lineWidth: 1)
+
+            roomBackgroundDecor
+
+            BuddyImageView(
+                mood: buddy.mood,
+                overrideAssetName: appState.debugBuddyAssetName,
+                fallbackSymbolName: buddy.mood.symbolName,
+                fallbackColor: moodColor,
+                fillColor: catFillColor
+            )
+            .padding(.bottom, 20)
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 245)
+    }
+
+    private var roomBackgroundDecor: some View {
+        ZStack(alignment: .bottom) {
+            Image("Plant_Fill")
+                .resizable()
+                .interpolation(.none)
+                .renderingMode(.template)
+                .foregroundStyle(Color.green.opacity(0.35))
+                .scaledToFit()
+                .frame(width: 74, height: 74)
+                .offset(x: -104, y: 6)
+
+            Image(plantLineAssetName)
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 74, height: 74)
+                .offset(x: -104, y: 6)
+
+            Image("Couch_Fill")
+                .resizable()
+                .interpolation(.none)
+                .renderingMode(.template)
+                .foregroundStyle(couchFillColor)
+                .scaledToFit()
+                .frame(width: 214, height: 118)
+                .offset(x: 14, y: 14)
+
+            Image("Couch")
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 214, height: 118)
+                .offset(x: 14, y: 14)
+        }
     }
 
     private var spendCard: some View {
@@ -101,8 +166,13 @@ struct HomeView: View {
             HStack {
                 Label("Today", systemImage: "calendar")
                 Spacer()
-                Text(buddy.asOfDate)
-                    .foregroundStyle(.secondary)
+
+                HStack(spacing: 10) {
+                    Text(buddy.asOfDate)
+                        .foregroundStyle(.secondary)
+
+                    refreshTransactionsButton(size: 34, iconSize: 14)
+                }
             }
             .font(DoodleFont.subheadline)
 
@@ -160,24 +230,32 @@ struct HomeView: View {
                 .buttonStyle(.borderedProminent)
                 .font(DoodleFont.headline)
             }
-
-            Button {
-                Task {
-                    await appState.refreshTransactions()
-                }
-            } label: {
-                Label("Refresh Transactions", systemImage: "arrow.clockwise")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
-            .font(DoodleFont.headline)
-            .disabled(!buddy.isLinked)
         }
+    }
+
+    private func refreshTransactionsButton(size: CGFloat, iconSize: CGFloat) -> some View {
+        Button {
+            Task {
+                await appState.refreshTransactions()
+            }
+        } label: {
+            Image(systemName: "arrow.clockwise")
+                .font(.system(size: iconSize, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: size, height: size)
+                .background(refreshButtonColor, in: Circle())
+                .shadow(color: refreshButtonColor.opacity(0.25), radius: 8, y: 4)
+        }
+        .buttonStyle(.plain)
+        .disabled(!buddy.isLinked)
+        .opacity(buddy.isLinked ? 1.0 : 0.45)
+        .accessibilityLabel("Refresh Transactions")
+        .accessibilityHint("Fetches latest transactions from your linked bank")
     }
 
     private var progress: Double {
         guard buddy.dailyAllowanceCents > 0 else { return 0 }
-        return min(Double(buddy.spentTodayCents) / Double(buddy.dailyAllowanceCents), 1.2)
+        return min(Double(buddy.spentTodayCents) / Double(buddy.dailyAllowanceCents), 1.0)
     }
 
     private var moodColor: Color {
@@ -191,6 +269,24 @@ struct HomeView: View {
 
     private var catFillColor: Color {
         Color(hue: appState.catFillHue, saturation: 0.48, brightness: 1.0)
+    }
+
+    private var homeBackgroundColor: Color {
+        Color("HomeSceneDominant")
+    }
+
+    private var refreshButtonColor: Color {
+        Color(red: 0.23, green: 0.45, blue: 0.63)
+    }
+
+    private var couchFillColor: Color {
+        appState.isCouchAccentColor
+            ? Color(red: 0.95, green: 0.62, blue: 0.66)
+            : Color(red: 0.55, green: 0.70, blue: 0.86)
+    }
+
+    private var plantLineAssetName: String {
+        appState.isPlantAlive ? "Plant_Healthy" : "Plant_Dead"
     }
 
     private func money(_ cents: Int) -> String {
@@ -247,6 +343,53 @@ private struct SettingsView: View {
                 }
 
                 Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Toggle("Plant alive", isOn: $appState.isPlantAlive)
+                        Toggle("Accent couch color", isOn: $appState.isCouchAccentColor)
+
+                        HStack(spacing: 10) {
+                            Text("Couch fill")
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(couchFillColor)
+                                .frame(width: 32, height: 20)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        .stroke(.secondary.opacity(0.35), lineWidth: 1)
+                                )
+                            Text(appState.isPlantAlive ? "Plant: Healthy" : "Plant: Dead")
+                                .font(DoodleFont.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Room placeholder")
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Picker("Preview hat", selection: hatSelectionBinding) {
+                            Text("None").tag(Optional<String>.none)
+                            ForEach(appState.ownedHats) { hat in
+                                Text(hat.name).tag(Optional(hat.id))
+                            }
+                        }
+
+                        Button {
+                            Task {
+                                await appState.toggleEquipSelectedHat()
+                            }
+                        } label: {
+                            Text(isSelectedHatEquipped ? "Unequip selected hat" : "Equip selected hat")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(appState.selectedHatId == nil)
+                    }
+                } header: {
+                    Text("Hats")
+                }
+
+                Section {
                     Picker("Test buddy", selection: $appState.debugBuddyAssetName) {
                         Text("Mood default").tag(Optional<String>.none)
                         ForEach(debugBuddyAssets, id: \.self) { assetName in
@@ -280,6 +423,9 @@ private struct SettingsView: View {
             }
         }
         .presentationDetents([.medium])
+        .task {
+            await appState.loadHats()
+        }
     }
 
     private var debugBuddyAssets: [String] {
@@ -298,6 +444,29 @@ private struct SettingsView: View {
             saturation: appState.catFillSaturation,
             brightness: appState.catFillBrightness
         )
+    }
+
+    private var couchFillColor: Color {
+        appState.isCouchAccentColor
+            ? Color(red: 0.95, green: 0.62, blue: 0.66)
+            : Color(red: 0.55, green: 0.70, blue: 0.86)
+    }
+
+    private var hatSelectionBinding: Binding<String?> {
+        Binding(
+            get: { appState.selectedHatId },
+            set: { newValue in
+                guard let newValue else {
+                    appState.selectedHatId = nil
+                    return
+                }
+                appState.selectHatForPreview(id: newValue)
+            }
+        )
+    }
+
+    private var isSelectedHatEquipped: Bool {
+        appState.selectedHatId != nil && appState.selectedHatId == appState.equippedHatId
     }
 
     private var darknessBinding: Binding<Double> {

@@ -6,6 +6,8 @@ struct BuddyImageView: View {
     let overrideAssetName: String?
     let fallbackSymbolName: String
     let fallbackColor: Color
+    var hatAssetKey: String?
+    var hatSymbolName: String?
     var fillColor: Color = Color(hue: 0.04, saturation: 0.45, brightness: 1.0)
     var size: CGFloat = 170
 
@@ -23,6 +25,22 @@ struct BuddyImageView: View {
 
     private var currentFrame: BuddyImageFrame {
         frames[min(frameIndex, frames.count - 1)]
+    }
+
+    private var currentFrameNumber: Int {
+        min(frameIndex, frames.count - 1) + 1
+    }
+
+    private var currentHatAssetName: String? {
+        guard let hatAssetKey else { return nil }
+        let frameSpecificName = "\(hatAssetKey)_\(currentFrameNumber)"
+        if UIImage(named: frameSpecificName) != nil {
+            return frameSpecificName
+        }
+        if UIImage(named: hatAssetKey) != nil {
+            return hatAssetKey
+        }
+        return nil
     }
 
     var body: some View {
@@ -46,9 +64,23 @@ struct BuddyImageView: View {
                     .font(.system(size: 82, weight: .semibold))
                     .foregroundStyle(fallbackColor)
             }
+
+            if let currentHatAssetName {
+                Image(currentHatAssetName)
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: size * 0.68, height: size * 0.68)
+                    .offset(y: -size * 0.28)
+            } else if let hatSymbolName {
+                Image(systemName: hatSymbolName)
+                    .font(.system(size: size * 0.2, weight: .bold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.2), radius: 3, y: 2)
+                    .offset(y: -size * 0.33)
+            }
         }
         .frame(width: size, height: size)
-        .background(fallbackColor.opacity(0.14), in: Circle())
         .onReceive(timer) { _ in
             guard frames.count > 1 else { return }
             frameIndex = (frameIndex + 1) % frames.count
