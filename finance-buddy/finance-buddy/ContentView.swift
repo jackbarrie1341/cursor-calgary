@@ -34,6 +34,12 @@ struct ContentView: View {
                 await appState.start()
             }
             .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    appState.resumeLobbyMusicIfEnabled()
+                } else {
+                    appState.pauseLobbyMusic()
+                }
+
                 guard newPhase == .active, appState.isAuthenticated, appState.buddy != nil else { return }
                 Task {
                     await appState.refreshBuddy()

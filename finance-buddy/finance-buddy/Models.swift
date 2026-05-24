@@ -34,6 +34,17 @@ extension BuddyMood {
     }
 }
 
+extension BuddyState {
+    var budgetUsageRatio: Double {
+        guard dailyAllowanceCents > 0 else { return 0 }
+        return Double(spentTodayCents) / Double(dailyAllowanceCents)
+    }
+
+    var budgetMood: BuddyMood {
+        .forBudgetUsageRatio(budgetUsageRatio)
+    }
+}
+
 struct BuddyState: Codable, Equatable {
     let mood: BuddyMood
     let spentTodayCents: Int
@@ -199,6 +210,8 @@ struct FriendBuddy: Codable, Identifiable, Equatable {
     let catFillHue: Double?
     let catFillSaturation: Double?
     let catFillBrightness: Double?
+    let hatAssetKey: String?
+    let hatSymbolName: String?
     let mood: BuddyMood
     let streak: Int
 
@@ -213,6 +226,8 @@ struct FriendSearchResult: Codable, Identifiable, Equatable {
     let catFillHue: Double?
     let catFillSaturation: Double?
     let catFillBrightness: Double?
+    let hatAssetKey: String?
+    let hatSymbolName: String?
     let mood: BuddyMood
     let streak: Int
     let isFriend: Bool
@@ -237,6 +252,7 @@ struct SpendingResponse: Codable, Equatable {
     let monthStartDate: String
     let monthTotalCents: Int
     let transactions: [SpendingTransaction]
+    let categoryBreakdown: [CategorySpendingBreakdown]
     let monthlyBreakdown: [MonthlySpendingBreakdown]
 }
 
@@ -246,6 +262,16 @@ struct SpendingTransaction: Codable, Identifiable, Equatable {
     let amountCents: Int
     let date: String?
     let pending: Bool
+    let categoryPrimary: String?
+    let categoryDetailed: String?
+}
+
+struct CategorySpendingBreakdown: Codable, Identifiable, Equatable {
+    let category: String
+    let totalCents: Int
+    let count: Int
+
+    var id: String { category }
 }
 
 struct MonthlySpendingBreakdown: Codable, Identifiable, Equatable {

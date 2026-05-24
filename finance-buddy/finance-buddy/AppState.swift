@@ -42,6 +42,12 @@ final class AppState: ObservableObject {
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?
+    @Published var isLobbyMusicEnabled: Bool = UserDefaults.standard.object(forKey: "lobby_music_enabled") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(isLobbyMusicEnabled, forKey: "lobby_music_enabled")
+            LobbyMusicPlayer.shared.setEnabled(isLobbyMusicEnabled)
+        }
+    }
     @Published var isBuddyLiveActivityEnabled: Bool = UserDefaults.standard.object(forKey: "buddy_live_activity_enabled") as? Bool ?? false {
         didSet {
             UserDefaults.standard.set(isBuddyLiveActivityEnabled, forKey: "buddy_live_activity_enabled")
@@ -60,6 +66,10 @@ final class AppState: ObservableObject {
                 UserDefaults.standard.set(devBudgetUtilOverridePercent, forKey: "dev_budget_util_override_percent")
             } else {
                 UserDefaults.standard.removeObject(forKey: "dev_budget_util_override_percent")
+            }
+            if let buddy {
+                saveWidgetSnapshot(for: buddy)
+                updateBuddyLiveActivityIfNeeded()
             }
         }
     }
@@ -118,6 +128,18 @@ final class AppState: ObservableObject {
 
     var backend: BackendClient {
         BackendClient(baseURL: AppConfig.backendBaseURL, accessToken: accessToken)
+    }
+
+    init() {
+        LobbyMusicPlayer.shared.setEnabled(isLobbyMusicEnabled)
+    }
+
+    func resumeLobbyMusicIfEnabled() {
+        LobbyMusicPlayer.shared.setEnabled(isLobbyMusicEnabled)
+    }
+
+    func pauseLobbyMusic() {
+        LobbyMusicPlayer.shared.pause()
     }
 
     func start() async {
@@ -353,6 +375,8 @@ final class AppState: ObservableObject {
                     catFillHue: result.catFillHue,
                     catFillSaturation: result.catFillSaturation,
                     catFillBrightness: result.catFillBrightness,
+                    hatAssetKey: result.hatAssetKey,
+                    hatSymbolName: result.hatSymbolName,
                     mood: result.mood,
                     streak: result.streak,
                     isFriend: true
@@ -505,6 +529,8 @@ final class AppState: ObservableObject {
     private func saveWidgetSnapshot(for buddy: BuddyState) {
         BuddyWidgetSnapshotStore.save(
             buddy,
+            mood: displayMood(for: buddy),
+            equippedHat: equippedHat,
             catFillHue: catFillHue,
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness
@@ -518,6 +544,8 @@ final class AppState: ObservableObject {
         Task {
             await BuddyLiveActivityController.startOrUpdate(
                 buddy: buddy,
+                mood: displayMood(for: buddy),
+                equippedHat: equippedHat,
                 frameIndex: 1,
                 catFillHue: catFillHue,
                 catFillSaturation: catFillSaturation,
@@ -529,6 +557,18 @@ final class AppState: ObservableObject {
     private func endBuddyLiveActivity() async {
         guard #available(iOS 16.2, *) else { return }
         await BuddyLiveActivityController.endAll()
+    }
+
+    func displayMood(for buddy: BuddyState) -> BuddyMood {
+        if let devBudgetUtilOverridePercent {
+            return .forBudgetUsageRatio(devBudgetUtilOverridePercent / 100)
+        }
+        return buddy.budgetMood
+    }
+
+    private var equippedHat: HatItem? {
+        guard let equippedHatId else { return nil }
+        return ownedHats.first(where: { $0.id == equippedHatId })
     }
 
     private func applyCatColor(from buddy: BuddyState) {
@@ -610,6 +650,10 @@ final class AppState: ObservableObject {
         }
         ownedHats = visibleHats
         equippedHatId = visibleHats.contains(where: { $0.id == response.equippedHatId }) ? response.equippedHatId : nil
+        if let buddy {
+            saveWidgetSnapshot(for: buddy)
+            updateBuddyLiveActivityIfNeeded()
+        }
 
         if
             let selectedHatId,

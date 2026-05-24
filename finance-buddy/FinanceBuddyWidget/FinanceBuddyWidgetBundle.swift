@@ -12,6 +12,7 @@ import SwiftUI
 struct FinanceBuddyWidgetBundle: WidgetBundle {
     var body: some Widget {
         FinanceBuddyWidget()
+        FinanceBuddySpendingWidget()
         FinanceBuddyWidgetLiveActivity()
     }
 }
