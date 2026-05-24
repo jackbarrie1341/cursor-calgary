@@ -37,7 +37,6 @@ final class AppState: ObservableObject {
     /// The headline as it streams in token-by-token. Non-nil only while a
     /// verdict is actively being written.
     @Published var financeCatStreamingHeadline: String?
-    @Published var debugBuddyAssetName: String?
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?
