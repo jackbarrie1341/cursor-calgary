@@ -152,10 +152,11 @@ final class AppState: ObservableObject {
                 buddy = try await withFreshSession {
                     try await self.backend.getBuddy()
                 }
+                await refreshFriendsForWidget()
                 await subscribeToBuddyUpdates()
             }
         } catch {
-            errorMessage = error.localizedDescription
+            presentErrorIfNeeded(error)
         }
     }
 
@@ -181,6 +182,7 @@ final class AppState: ObservableObject {
             self.currentDisplayName = input.name.trimmingCharacters(in: .whitespacesAndNewlines)
             self.apply(session: session)
             self.buddy = try await self.backend.getBuddy()
+            await self.refreshFriendsForWidget()
             await self.subscribeToBuddyUpdates()
         }
     }
@@ -197,6 +199,7 @@ final class AppState: ObservableObject {
             )
             self.apply(session: session)
             self.buddy = try await self.backend.getBuddy()
+            await self.refreshFriendsForWidget()
             await self.subscribeToBuddyUpdates()
         }
     }
@@ -228,7 +231,7 @@ final class AppState: ObservableObject {
         isPresentingPlaid = false
         linkToken = nil
         if let error {
-            errorMessage = error.localizedDescription
+            presentErrorIfNeeded(error)
         }
     }
 
@@ -243,6 +246,7 @@ final class AppState: ObservableObject {
     func refreshBuddy() async {
         await run {
             self.buddy = try await self.backend.getBuddy()
+            await self.refreshFriendsForWidget()
             self.refreshFinanceCatVerdictIfPossible(force: false)
         }
     }
@@ -254,7 +258,7 @@ final class AppState: ObservableObject {
             }
             applyHats(response)
         } catch {
-            errorMessage = error.localizedDescription
+            presentErrorIfNeeded(error)
         }
     }
 
@@ -271,7 +275,7 @@ final class AppState: ObservableObject {
             }
             applyHats(response)
         } catch {
-            errorMessage = error.localizedDescription
+            presentErrorIfNeeded(error)
         }
     }
 
@@ -313,7 +317,22 @@ final class AppState: ObservableObject {
 
     func loadFriends() async {
         await run {
-            self.friends = try await self.backend.getFriends()
+            try await self.refreshFriends()
+        }
+    }
+
+    private func refreshFriends() async throws {
+        friends = try await backend.getFriends()
+        if let buddy {
+            saveWidgetSnapshot(for: buddy)
+        }
+    }
+
+    private func refreshFriendsForWidget() async {
+        do {
+            try await refreshFriends()
+        } catch {
+            print("[WidgetSnapshot] failed to refresh friends: \(error.localizedDescription)")
         }
     }
 
@@ -365,6 +384,9 @@ final class AppState: ObservableObject {
             if !self.friends.contains(where: { $0.userId == friend.userId }) {
                 self.friends.insert(friend, at: 0)
             }
+            if let buddy = self.buddy {
+                self.saveWidgetSnapshot(for: buddy)
+            }
             self.friendSearchResults = self.friendSearchResults.map { result in
                 guard result.username == friend.username else { return result }
                 return FriendSearchResult(
@@ -397,8 +419,32 @@ final class AppState: ObservableObject {
                 try await operation()
             }
         } catch {
-            errorMessage = error.localizedDescription
+            presentErrorIfNeeded(error)
         }
+    }
+
+    private func presentErrorIfNeeded(_ error: Error) {
+        guard !isCancellationLike(error) else {
+            print("[AppState] ignored cancellation: \(error.localizedDescription)")
+            return
+        }
+        errorMessage = error.localizedDescription
+    }
+
+    private func isCancellationLike(_ error: Error) -> Bool {
+        if error is CancellationError {
+            return true
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain, nsError.code == NSURLErrorCancelled {
+            return true
+        }
+
+        let message = error.localizedDescription
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return message == "cancelled" || message == "canceled"
     }
 
     private func withFreshSession<T>(_ operation: @escaping () async throws -> T) async throws -> T {
@@ -417,6 +463,7 @@ final class AppState: ObservableObject {
 
         guard #available(iOS 26.0, *) else {
             financeCatAgentStatus = .unavailable("Cat analysis requires iOS 26.")
+            print("[FinanceCat] unavailable: iOS 26 required")
             return
         }
 
@@ -424,9 +471,11 @@ final class AppState: ObservableObject {
            let financeCatVerdict,
            financeCatVerdict.isRecent,
            financeCatVerdict.sourceTransactionCount == snapshot.transactionCount {
+            print("[FinanceCat] using cached verdict generatedAt=\(financeCatVerdict.generatedAt) transactionCount=\(snapshot.transactionCount)")
             return
         }
 
+        print("[FinanceCat] starting generation force=\(force) transactionCount=\(snapshot.transactionCount) todayCount=\(snapshot.todaysTransactions.count)")
         financeCatTask?.cancel()
         financeCatAgentStatus = .generating
         financeCatStreamingHeadline = nil
@@ -434,15 +483,19 @@ final class AppState: ObservableObject {
         financeCatTask = Task { [snapshot] in
             let agent = FinanceCatAgent()
             do {
+                print("[FinanceCat] streaming verdict")
                 // Stream the verdict so the headline types out live, keeping the
                 // last fully-formed snapshot to persist once the model finishes.
                 var lastComplete: BuddyVerdict?
                 for try await partial in agent.streamVerdict(snapshot: snapshot) {
                     guard !Task.isCancelled else { return }
                     if let headline = partial.headline, !headline.isEmpty {
-                        self.financeCatStreamingHeadline = headline
+                        let cleanedHeadline = FinanceCatTextCleaner.clean(headline)
+                        print("[FinanceCat] streamed headline partial=\(headline)")
+                        self.financeCatStreamingHeadline = cleanedHeadline
                     }
                     if let complete = partial.completeVerdict {
+                        print("[FinanceCat] streamed complete headline=\(complete.headline)")
                         lastComplete = complete
                     }
                 }
@@ -454,16 +507,24 @@ final class AppState: ObservableObject {
                 if let lastComplete {
                     verdict = lastComplete
                 } else {
+                    print("[FinanceCat] stream incomplete, falling back to one-shot")
                     verdict = try await agent.generateVerdict(snapshot: snapshot)
                 }
+                print("[FinanceCat] raw final headline=\(verdict.headline)")
                 self.commitFinanceCatVerdict(
-                    verdict.withoutEmoji.refinedForHome(using: snapshot),
+                    verdict.withoutEmoji,
                     transactionCount: snapshot.transactionCount
                 )
             } catch is CancellationError {
+                print("[FinanceCat] generation cancelled")
                 return
             } catch {
                 guard !Task.isCancelled else { return }
+                if self.isCancellationLike(error) {
+                    print("[FinanceCat] generation cancelled: \(error.localizedDescription)")
+                    return
+                }
+                print("[FinanceCat] generation failed: \(error.localizedDescription)")
                 self.financeCatStreamingHeadline = nil
                 self.financeCatAgentStatus = .failed(error.localizedDescription)
             }
@@ -481,6 +542,7 @@ final class AppState: ObservableObject {
         financeCatVerdict = storedVerdict
         financeCatStreamingHeadline = nil
         financeCatAgentStatus = .idle
+        print("[FinanceCat] committed sanitized headline=\(storedVerdict.verdict.headline)")
     }
 
     private func restoreSession(forceRefresh: Bool = false, allowMissing: Bool = false) async throws {
@@ -531,6 +593,7 @@ final class AppState: ObservableObject {
             buddy,
             mood: displayMood(for: buddy),
             equippedHat: equippedHat,
+            friends: friends,
             catFillHue: catFillHue,
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness
@@ -599,7 +662,7 @@ final class AppState: ObservableObject {
             } catch is CancellationError {
                 return
             } catch {
-                errorMessage = error.localizedDescription
+                presentErrorIfNeeded(error)
             }
         }
     }

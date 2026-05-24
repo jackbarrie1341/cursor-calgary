@@ -68,8 +68,10 @@ final class FinanceCatAgent {
     )
 
     func prewarm(snapshot: FinanceCatSnapshot) {
+        print("[FinanceCat] model availability before prewarm: \(SystemLanguageModel.default.availability)")
         guard case .available = SystemLanguageModel.default.availability else { return }
         makeSession(snapshot: snapshot).prewarm(promptPrefix: Prompt("Review the user's finance snapshot."))
+        print("[FinanceCat] prewarm requested")
     }
 
     /// One-shot generation. Kept as the fallback path when streaming produces an
@@ -131,6 +133,7 @@ final class FinanceCatAgent {
     }
 
     private static func requireAvailableModel() throws {
+        print("[FinanceCat] checking model availability: \(SystemLanguageModel.default.availability)")
         switch SystemLanguageModel.default.availability {
         case .available:
             return
@@ -155,8 +158,11 @@ final class FinanceCatAgent {
     Look for unnecessary purchases, repeated small charges that add up, and areas where the user is doing well.
     The headline must be exactly one specific sentence for the Home screen.
     The headline must mention the merchant, purchase type, or category behind the judgment when one exists.
+    Keep the headline under 75 characters.
+    Simplify noisy bank transaction names into plain language; say "that withdrawal" or "that transfer" instead of full ACH, card, check, or account strings.
     Do not copy, list, enumerate, or restate the raw tool output.
-    Do not include cents, IDs, multiple merchants, or comma-separated transaction lists in the headline.
+    Do not include cents, account numbers, check numbers, transaction IDs, multiple merchants, or comma-separated transaction lists in the headline.
+    Never use raw cent notation like "7500c"; write normal words instead, or avoid the amount entirely.
     Never write generic summaries like "another day of spending" or "you spent money today."
     Prefer lines like "Three coffees before noon? My whiskers noticed." or "No takeout today, impressive."
     Make the headline sound lightly like a cat without forcing cat words. No emoji or emoticons anywhere.

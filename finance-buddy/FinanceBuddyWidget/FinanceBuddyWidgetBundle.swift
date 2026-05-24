@@ -13,6 +13,7 @@ struct FinanceBuddyWidgetBundle: WidgetBundle {
     var body: some Widget {
         FinanceBuddyWidget()
         FinanceBuddySpendingWidget()
+        FinanceBuddyCrewWidget()
         FinanceBuddyWidgetLiveActivity()
     }
 }

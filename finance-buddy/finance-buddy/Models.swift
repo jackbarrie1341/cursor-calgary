@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 
 enum BuddyMood: String, Codable, CaseIterable {
     case happy
@@ -11,7 +12,16 @@ enum BuddyMood: String, Codable, CaseIterable {
         case .happy: "Cheesing"
         case .nervous: "Worried"
         case .hungry: "Broke"
-        case .sick: "Money Spread"
+        case .sick: "Flexing"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .happy: Color(red: 0.30, green: 0.72, blue: 0.38)
+        case .nervous: .yellow
+        case .hungry: .red
+        case .sick: Color(red: 0.05, green: 0.62, blue: 0.30)
         }
     }
 
@@ -27,7 +37,7 @@ enum BuddyMood: String, Codable, CaseIterable {
 
 extension BuddyMood {
     static func forBudgetUsageRatio(_ ratio: Double) -> BuddyMood {
-        if ratio < 0.5 { return .sick }      // Money Spread
+        if ratio < 0.5 { return .sick }      // Flexing
         if ratio < 0.8 { return .happy }     // Cheesing
         if ratio < 1.0 { return .nervous }   // Worried
         return .hungry                       // Broke

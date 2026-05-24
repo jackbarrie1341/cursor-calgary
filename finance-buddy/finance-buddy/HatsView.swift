@@ -32,7 +32,11 @@ struct HatsView: View {
     }
 
     private var catFillColor: Color {
-        Color(hue: appState.catFillHue, saturation: 0.48, brightness: 1.0)
+        Color(
+            hue: appState.catFillHue,
+            saturation: appState.catFillSaturation,
+            brightness: appState.catFillBrightness
+        )
     }
 
     private var isPreviewEquipped: Bool {
@@ -175,12 +179,7 @@ struct HatsView: View {
     }
 
     private var moodColor: Color {
-        switch effectiveMood {
-        case .happy: .green
-        case .nervous: .yellow
-        case .hungry: .orange
-        case .sick: .red
-        }
+        effectiveMood.color
     }
 
     private var effectiveMood: BuddyMood {
