@@ -605,19 +605,22 @@ final class AppState: ObservableObject {
     }
 
     private func applyHats(_ response: HatsResponse) {
-        ownedHats = response.ownedHats
-        equippedHatId = response.equippedHatId
+        let visibleHats = response.ownedHats.filter { hat in
+            hat.assetKey != "icon_hat" && hat.slug != "icon_hat"
+        }
+        ownedHats = visibleHats
+        equippedHatId = visibleHats.contains(where: { $0.id == response.equippedHatId }) ? response.equippedHatId : nil
 
         if
             let selectedHatId,
-            !response.ownedHats.contains(where: { $0.id == selectedHatId })
+            !visibleHats.contains(where: { $0.id == selectedHatId })
         {
-            self.selectedHatId = response.equippedHatId
+            self.selectedHatId = equippedHatId
             return
         }
 
         if self.selectedHatId == nil {
-            self.selectedHatId = response.equippedHatId ?? response.ownedHats.first?.id
+            self.selectedHatId = equippedHatId ?? visibleHats.first?.id
         }
     }
 }

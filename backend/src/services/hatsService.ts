@@ -72,6 +72,30 @@ const seedHats: SeedHat[] = [
     symbolName: "frying.pan.fill",
     sortOrder: 6,
     starterOwned: true
+  },
+  {
+    slug: "joyboy",
+    name: "Joyboy Hat",
+    assetKey: "hat_joyboy",
+    symbolName: "sparkles",
+    sortOrder: 7,
+    starterOwned: true
+  },
+  {
+    slug: "santa",
+    name: "Santa Hat",
+    assetKey: "hat_santa",
+    symbolName: "snowflake",
+    sortOrder: 8,
+    starterOwned: true
+  },
+  {
+    slug: "yanknobrim",
+    name: "Yank No Brim",
+    assetKey: "hat_yanknobrim",
+    symbolName: "baseball.fill",
+    sortOrder: 9,
+    starterOwned: true
   }
 ];
 
@@ -198,7 +222,7 @@ async function readHatsPayload(userId: string): Promise<HatsPayload> {
     name: row.name,
     assetKey: row.assetKey,
     symbolName: row.symbolName
-  }));
+  })).filter((hat) => hat.assetKey !== "icon_hat" && hat.slug !== "icon_hat");
 
   let equippedHatId = profile?.equippedHatId ?? null;
   if (equippedHatId && !ownedHats.some((hat) => hat.id == equippedHatId)) {
