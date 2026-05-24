@@ -27,7 +27,6 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
   const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
   const [state] = await db.select().from(buddyStates).where(eq(buddyStates.userId, userId)).limit(1);
   const [item] = await db.select({ id: plaidItems.id }).from(plaidItems).where(eq(plaidItems.userId, userId)).limit(1);
-  const hats = await getHatsPayload(userId);
 
   if (!profile) {
     return {
@@ -44,10 +43,12 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
       catFillBrightness: 1,
       isLinked: Boolean(item),
       hasOnboarded: false,
-      ownedHats: hats.ownedHats,
-      equippedHatId: hats.equippedHatId
+      ownedHats: [],
+      equippedHatId: null
     };
   }
+
+  const hats = await getHatsPayload(userId);
 
   if (!state) {
     return await recomputeBuddyState(userId);
@@ -58,8 +59,13 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
     return await recomputeBuddyState(userId);
   }
 
-  const expectedMood = moodForSpend(state.spentTodayCents, state.dailyAllowanceCents);
-  if (state.mood !== expectedMood) {
+  const currentSpentTodayCents = await sumSpendCents(userId, today, today);
+  const expectedMood = moodForSpend(currentSpentTodayCents, profile.dailyAllowanceCents);
+  if (
+    state.spentTodayCents !== currentSpentTodayCents ||
+    state.dailyAllowanceCents !== profile.dailyAllowanceCents ||
+    state.mood !== expectedMood
+  ) {
     return await recomputeBuddyState(userId);
   }
 
@@ -150,8 +156,8 @@ async function sumSpendCents(userId: string, startDate: string, endDate: string)
     .where(
       and(
         eq(transactions.userId, userId),
-        sql`${transactions.authorizedDate} >= ${startDate}`,
-        sql`${transactions.authorizedDate} <= ${endDate}`,
+        sql`coalesce(${transactions.authorizedDate}, ${transactions.postedDate}) >= ${startDate}`,
+        sql`coalesce(${transactions.authorizedDate}, ${transactions.postedDate}) <= ${endDate}`,
         eq(transactions.removed, false)
       )
     );

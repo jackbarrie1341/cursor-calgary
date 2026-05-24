@@ -73,7 +73,7 @@ enum FinanceCatAgentStatus: Equatable, Sendable {
 }
 
 enum FinanceCatVerdictStore {
-    private static let key = "finance_cat_verdict_v4"
+    private static let key = "finance_cat_verdict_v6"
 
     static func load() -> StoredBuddyVerdict? {
         guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
@@ -194,9 +194,20 @@ private extension String {
         var cleaned = String(unicodeScalars.filter { scalar in
             !scalar.properties.isEmojiPresentation
         })
+        cleaned = cleaned.trimmingCharacters(in: CharacterSet.whitespacesAndNewlines.union(CharacterSet(charactersIn: "\"“”")))
+        cleaned = cleaned.replacingOccurrences(
+            of: #"(?i)^([^":]+):\s*\d+\s+times.*$"#,
+            with: "$1 again?",
+            options: .regularExpression
+        )
         cleaned = cleaned.replacingOccurrences(
             of: #"(?i)\b\d+\s*c\b"#,
-            with: "money",
+            with: "",
+            options: .regularExpression
+        )
+        cleaned = cleaned.replacingOccurrences(
+            of: #"(?i),?\s*money\s+total|,?\s*about\s+money\s+each"#,
+            with: "",
             options: .regularExpression
         )
         cleaned = cleaned.replacingOccurrences(
