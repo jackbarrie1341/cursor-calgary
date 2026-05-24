@@ -72,14 +72,6 @@ const seedHats: SeedHat[] = [
     symbolName: "frying.pan.fill",
     sortOrder: 6,
     starterOwned: true
-  },
-  {
-    slug: "icon_hat",
-    name: "Icon Hat",
-    assetKey: "icon_hat",
-    symbolName: "baseballcap.fill",
-    sortOrder: 7,
-    starterOwned: true
   }
 ];
 

@@ -26,7 +26,7 @@ struct MainTabView: View {
             HatsView()
                 .environmentObject(appState)
                 .tabItem {
-                    Label("Hats", systemImage: "baseballcap")
+                    Label("Hats", image: "icon_hat")
                 }
         }
     }
