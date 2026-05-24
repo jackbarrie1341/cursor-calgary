@@ -43,5 +43,5 @@ struct PurchaseReactionOverlayView: View {
     }
 
     static let happyFrames = ["1_Heart", "2_Heart"]
-    static let sadFrames = ["aura_mad1", "aura_mad2"]
+    static let sadFrames = ["1_Mad", "2_Mad"]
 }
