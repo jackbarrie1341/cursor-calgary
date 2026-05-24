@@ -39,6 +39,92 @@ struct BuddyState: Codable, Equatable {
     let catFillBrightness: Double?
     let isLinked: Bool
     let hasOnboarded: Bool
+    let ownedHats: [HatItem]
+    let equippedHatId: String?
+
+    enum CodingKeys: String, CodingKey {
+        case mood
+        case spentTodayCents
+        case spentWeekCents
+        case spentMonthCents
+        case dailyAllowanceCents
+        case streak
+        case asOfDate
+        case buddyName
+        case catFillHue
+        case catFillSaturation
+        case catFillBrightness
+        case isLinked
+        case hasOnboarded
+        case ownedHats
+        case equippedHatId
+    }
+
+    init(
+        mood: BuddyMood,
+        spentTodayCents: Int,
+        spentWeekCents: Int,
+        spentMonthCents: Int,
+        dailyAllowanceCents: Int,
+        streak: Int,
+        asOfDate: String,
+        buddyName: String,
+        catFillHue: Double?,
+        catFillSaturation: Double?,
+        catFillBrightness: Double?,
+        isLinked: Bool,
+        hasOnboarded: Bool,
+        ownedHats: [HatItem],
+        equippedHatId: String?
+    ) {
+        self.mood = mood
+        self.spentTodayCents = spentTodayCents
+        self.spentWeekCents = spentWeekCents
+        self.spentMonthCents = spentMonthCents
+        self.dailyAllowanceCents = dailyAllowanceCents
+        self.streak = streak
+        self.asOfDate = asOfDate
+        self.buddyName = buddyName
+        self.catFillHue = catFillHue
+        self.catFillSaturation = catFillSaturation
+        self.catFillBrightness = catFillBrightness
+        self.isLinked = isLinked
+        self.hasOnboarded = hasOnboarded
+        self.ownedHats = ownedHats
+        self.equippedHatId = equippedHatId
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        mood = try container.decode(BuddyMood.self, forKey: .mood)
+        spentTodayCents = try container.decode(Int.self, forKey: .spentTodayCents)
+        spentWeekCents = try container.decode(Int.self, forKey: .spentWeekCents)
+        spentMonthCents = try container.decode(Int.self, forKey: .spentMonthCents)
+        dailyAllowanceCents = try container.decode(Int.self, forKey: .dailyAllowanceCents)
+        streak = try container.decode(Int.self, forKey: .streak)
+        asOfDate = try container.decode(String.self, forKey: .asOfDate)
+        buddyName = try container.decode(String.self, forKey: .buddyName)
+        catFillHue = try container.decodeIfPresent(Double.self, forKey: .catFillHue)
+        catFillSaturation = try container.decodeIfPresent(Double.self, forKey: .catFillSaturation)
+        catFillBrightness = try container.decodeIfPresent(Double.self, forKey: .catFillBrightness)
+        isLinked = try container.decode(Bool.self, forKey: .isLinked)
+        hasOnboarded = try container.decode(Bool.self, forKey: .hasOnboarded)
+        ownedHats = try container.decodeIfPresent([HatItem].self, forKey: .ownedHats) ?? []
+        equippedHatId = try container.decodeIfPresent(String.self, forKey: .equippedHatId)
+    }
+}
+
+struct HatItem: Codable, Identifiable, Equatable {
+    let id: String
+    let slug: String
+    let name: String
+    let assetKey: String
+    let symbolName: String
+}
+
+struct HatsResponse: Codable, Equatable {
+    let ownedHats: [HatItem]
+    let equippedHatId: String?
 }
 
 struct AuthInput {

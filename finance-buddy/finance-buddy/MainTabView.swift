@@ -22,6 +22,12 @@ struct MainTabView: View {
             FriendsView()
                 .environmentObject(appState)
                 .tabItem { Label("Friends", image: "friendslogoplaceholder_tab") }
+
+            HatsView()
+                .environmentObject(appState)
+                .tabItem {
+                    Label("Hats", systemImage: "baseballcap")
+                }
         }
     }
 }
