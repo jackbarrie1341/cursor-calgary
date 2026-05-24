@@ -31,6 +31,21 @@ struct BuddyImageView: View {
         min(frameIndex, frames.count - 1) + 1
     }
 
+    private var moneySpreadHatAdjustment: (offset: CGSize, rotation: Angle) {
+        guard assetName == "Cat_Money_Spread", let hatAssetKey else {
+            return (.zero, .zero)
+        }
+        switch hatAssetKey {
+        case "Hat_Sprout":
+            return (CGSize(width: -size * 0.05, height: size * 0.03), .zero)
+        default:
+            return (
+                CGSize(width: -size * 0.05, height: -size * 0.04),
+                .degrees(-8)
+            )
+        }
+    }
+
     private var currentHatAssetName: String? {
         guard let hatAssetKey else { return nil }
         let frameSpecificName = "\(hatAssetKey)_\(currentFrameNumber)"
@@ -71,6 +86,8 @@ struct BuddyImageView: View {
                     .interpolation(.none)
                     .scaledToFit()
                     .frame(width: size, height: size)
+                    .rotationEffect(moneySpreadHatAdjustment.rotation)
+                    .offset(moneySpreadHatAdjustment.offset)
             } else if let hatSymbolName {
                 Image(systemName: hatSymbolName)
                     .font(.system(size: size * 0.2, weight: .bold))
