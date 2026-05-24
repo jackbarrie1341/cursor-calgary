@@ -21,10 +21,6 @@ struct SpendingView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if appState.financeCatVerdict != nil {
-                    catsReadCard
-                }
-
                 categoryBreakdownCard
                 todaysSpendingCard
                 monthTransactionsCard
@@ -39,35 +35,6 @@ struct SpendingView: View {
         .refreshable {
             await appState.loadSpending()
         }
-    }
-
-    private var catsReadCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Label("Cat's read", systemImage: "sparkles")
-                    .font(DoodleFont.title3)
-                    .doodleTracking(-0.8)
-            }
-
-            if let verdict = appState.financeCatVerdict?.verdict {
-                Text("\"\(verdict.headline)\"")
-                    .font(DoodleFont.headline)
-                    .doodleTracking(-0.7)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                HStack(spacing: 10) {
-                    if let biggestCulprit = verdict.biggestCulprit, !biggestCulprit.isEmpty {
-                        readMetric(title: "Culprit", value: biggestCulprit)
-                    }
-
-                    if let projectedMonthEndCents = verdict.projectedMonthEndCents {
-                        readMetric(title: "Projected", value: money(projectedMonthEndCents))
-                    }
-                }
-            }
-        }
-        .padding(16)
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var categoryBreakdownCard: some View {
@@ -218,6 +185,7 @@ struct SpendingView: View {
                     Text(transaction.date ?? "unknown date")
                     if let categoryName = transaction.categoryDisplayName {
                         Text(categoryName)
+                            .foregroundStyle(transaction.categoryColor)
                     }
                     if transaction.pending {
                         Text("pending")
@@ -242,23 +210,6 @@ struct SpendingView: View {
             .foregroundStyle(.secondary)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.vertical, 8)
-    }
-
-    private func readMetric(title: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title)
-                .font(DoodleFont.caption)
-                .foregroundStyle(.secondary)
-
-            Text(value)
-                .font(DoodleFont.headline)
-                .doodleTracking(-0.7)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
     }
 
     private func categoryLegendRow(_ entry: CategoryEntry) -> some View {
@@ -357,6 +308,10 @@ private extension SpendingTransaction {
     var categoryDisplayName: String? {
         guard let categoryPrimary, !categoryPrimary.isEmpty else { return nil }
         return categoryPrimary.readableCategoryName
+    }
+
+    var categoryColor: Color {
+        (categoryPrimary ?? "UNCATEGORIZED").categoryColor
     }
 }
 
