@@ -82,6 +82,11 @@ private struct BuddyImageFrame {
                 BuddyImageFrame(lineAssetName: "Cat_Money_Spread_3", fillAssetName: "3_Fill_Cat_Money_Spread"),
                 BuddyImageFrame(lineAssetName: "Cat_Money_Spread_2", fillAssetName: "2_Fill_Cat_Money_Spread")
             ]
+        case "Cat_Broke":
+            [
+                BuddyImageFrame(lineAssetName: "1_Cat_Broke", fillAssetName: "1_2_Fill_Cat_Broke"),
+                BuddyImageFrame(lineAssetName: "2_Cat_Broke", fillAssetName: "1_2_Fill_Cat_Broke")
+            ]
         default:
             [
                 BuddyImageFrame(lineAssetName: assetName, fillAssetName: nil)

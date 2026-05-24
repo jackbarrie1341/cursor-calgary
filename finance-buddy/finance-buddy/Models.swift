@@ -136,3 +136,28 @@ struct FriendSearchResponse: Codable {
 struct AddFriendResponse: Codable {
     let friend: FriendBuddy
 }
+
+struct SpendingResponse: Codable, Equatable {
+    let asOfDate: String
+    let monthStartDate: String
+    let monthTotalCents: Int
+    let transactions: [SpendingTransaction]
+    let monthlyBreakdown: [MonthlySpendingBreakdown]
+}
+
+struct SpendingTransaction: Codable, Identifiable, Equatable {
+    let id: String
+    let name: String
+    let amountCents: Int
+    let date: String?
+    let pending: Bool
+}
+
+struct MonthlySpendingBreakdown: Codable, Identifiable, Equatable {
+    let name: String
+    let totalCents: Int
+    let count: Int
+    let lastDate: String?
+
+    var id: String { name }
+}

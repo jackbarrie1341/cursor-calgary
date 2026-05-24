@@ -75,6 +75,14 @@ struct BackendClient {
         return response.friend
     }
 
+    func getSpending() async throws -> SpendingResponse {
+        try await send(
+            path: "/spending",
+            method: "GET",
+            body: Optional<EmptyBody>.none
+        )
+    }
+
     func updateCatColor(hue: Double, saturation: Double, brightness: Double) async throws {
         let _: BuddyState = try await send(
             path: "/profile/color",

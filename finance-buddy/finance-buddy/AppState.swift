@@ -23,6 +23,7 @@ final class AppState: ObservableObject {
     @Published var currentUsername = ""
     @Published var friends: [FriendBuddy] = []
     @Published var friendSearchResults: [FriendSearchResult] = []
+    @Published var spending: SpendingResponse?
     @Published var debugBuddyAssetName: String?
     @Published var catFillHue: Double = UserDefaults.standard.object(forKey: "cat_fill_hue") as? Double ?? 0.04 {
         didSet {
@@ -158,6 +159,7 @@ final class AppState: ObservableObject {
     func refreshTransactions() async {
         await run {
             try await self.backend.refreshTransactions()
+            self.spending = try await self.backend.getSpending()
         }
     }
 
@@ -188,6 +190,12 @@ final class AppState: ObservableObject {
     func loadFriends() async {
         await run {
             self.friends = try await self.backend.getFriends()
+        }
+    }
+
+    func loadSpending() async {
+        await run {
+            self.spending = try await self.backend.getSpending()
         }
     }
 

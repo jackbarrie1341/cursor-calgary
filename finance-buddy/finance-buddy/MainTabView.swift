@@ -13,9 +13,15 @@ struct MainTabView: View {
                 .environmentObject(appState)
                 .tabItem { Label("Home", image: "finalhomecat_tab") }
 
+            SpendingView()
+                .environmentObject(appState)
+                .tabItem {
+                    Label("Spending", systemImage: "list.clipboard")
+                }
+
             FriendsView()
                 .environmentObject(appState)
-                .tabItem { Label("Friends", image: "cat_yinyang_tab") }
+                .tabItem { Label("Friends", image: "friendslogoplaceholder_tab") }
         }
     }
 }

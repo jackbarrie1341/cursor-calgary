@@ -189,6 +189,67 @@ app.post("/transactions/refresh", requireAuth, async (req, res, next) => {
   }
 });
 
+app.get("/spending", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const today = localDateString(new Date(), env.APP_TIME_ZONE);
+    const monthStart = `${today.slice(0, 8)}01`;
+
+    const transactionsResult = await pool.query(
+      `
+        select
+          id,
+          coalesce(merchant_name, name) as name,
+          amount_cents as "amountCents",
+          coalesce(authorized_date, posted_date)::text as date,
+          pending
+        from transactions
+        where user_id = $1
+          and removed = false
+          and amount_cents > 0
+        order by coalesce(authorized_date, posted_date) desc, created_at desc
+        limit 50
+      `,
+      [authReq.userId]
+    );
+
+    const breakdownResult = await pool.query(
+      `
+        select
+          coalesce(merchant_name, name) as name,
+          sum(amount_cents)::int as "totalCents",
+          count(*)::int as count,
+          max(coalesce(authorized_date, posted_date))::text as "lastDate"
+        from transactions
+        where user_id = $1
+          and removed = false
+          and amount_cents > 0
+          and coalesce(authorized_date, posted_date) >= $2
+          and coalesce(authorized_date, posted_date) <= $3
+        group by coalesce(merchant_name, name)
+        order by sum(amount_cents) desc
+        limit 10
+      `,
+      [authReq.userId, monthStart, today]
+    );
+
+    const monthTotalCents = breakdownResult.rows.reduce(
+      (total: number, row: { totalCents: number }) => total + row.totalCents,
+      0
+    );
+
+    res.json({
+      asOfDate: today,
+      monthStartDate: monthStart,
+      monthTotalCents,
+      transactions: transactionsResult.rows,
+      monthlyBreakdown: breakdownResult.rows
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/buddy", requireAuth, async (req, res, next) => {
   try {
     const authReq = req as AuthenticatedRequest;

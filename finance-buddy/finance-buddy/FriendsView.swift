@@ -70,7 +70,11 @@ struct FriendsView: View {
                         await appState.searchFriends(query: query)
                     }
                 } label: {
-                    Image(systemName: "magnifyingglass")
+                    Image("pawsearchlogo")
+                        .resizable()
+                        .interpolation(.none)
+                        .scaledToFit()
+                        .frame(width: 34, height: 34)
                 }
                 .buttonStyle(.bordered)
                 .accessibilityLabel("Search")
