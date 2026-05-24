@@ -68,12 +68,13 @@ private struct BuddyImageFrame {
         switch assetName {
         case "Cat_Cheesing":
             [
-                BuddyImageFrame(lineAssetName: "1_Cat_Cheesing", fillAssetName: "1_Fill_Cat_Cheesing")
-            ]
-        case "Cat_Cheesing_Blink":
-            [
                 BuddyImageFrame(lineAssetName: "1_Cat_Cheesing", fillAssetName: "1_Fill_Cat_Cheesing"),
                 BuddyImageFrame(lineAssetName: "2_Cat_Cheesing", fillAssetName: "2_Fill_Cat_Cheesing")
+            ]
+        case "Cat_Worried":
+            [
+                BuddyImageFrame(lineAssetName: "1_Cat_Worried", fillAssetName: "1_2_Fill_Cat_Worried"),
+                BuddyImageFrame(lineAssetName: "2_Cat_Worried", fillAssetName: "1_2_Fill_Cat_Worried")
             ]
         case "Cat_Money_Spread":
             [

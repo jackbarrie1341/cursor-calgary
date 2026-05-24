@@ -286,7 +286,6 @@ private struct SettingsView: View {
         [
             "Cat_Broke",
             "Cat_Cheesing",
-            "Cat_Cheesing_Blink",
             "Cat_Money_Spread",
             "Cat_Tear_Pool",
             "Cat_Worried"
