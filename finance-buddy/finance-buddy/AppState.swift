@@ -245,6 +245,7 @@ final class AppState: ObservableObject {
         await run {
             try await self.backend.refreshTransactions()
             self.spending = try await self.backend.getSpending()
+            self.buddy = try await self.backend.getBuddy()
             self.refreshFinanceCatVerdictIfPossible(force: true)
         }
     }

@@ -34,13 +34,13 @@ struct GeneratedFinanceVerdict {
     let mood: GeneratedBuddyMood
     @Guide(description: "How concerned the cat is, from 0 calm to 10 alarmed.", .range(0...10))
     let severity: Int
-    @Guide(description: "One specific Home-screen sentence naming the merchant, purchase type, or category behind the judgment.")
+    @Guide(description: "One simple Home-screen sentence under 12 words. No emoji, no money amounts, no lists.")
     let headline: String
-    @Guide(description: "A one-sentence playful spending comment, maximum 14 words.")
+    @Guide(description: "A one-sentence playful spending comment, maximum 12 words.")
     let roast: String
     @Guide(description: "Top merchant or category driving spend, or an empty string if none stands out.")
     let biggestCulprit: String
-    @Guide(description: "One concrete spending tip, maximum 14 words.")
+    @Guide(description: "One concrete spending tip, maximum 12 words.")
     let tip: String
 }
 
@@ -70,7 +70,7 @@ final class FinanceCatAgent {
     func prewarm(snapshot: FinanceCatSnapshot) {
         print("[FinanceCat] model availability before prewarm: \(SystemLanguageModel.default.availability)")
         guard case .available = SystemLanguageModel.default.availability else { return }
-        makeSession(snapshot: snapshot).prewarm(promptPrefix: Prompt("Review the user's finance snapshot."))
+        makeSession(snapshot: snapshot).prewarm(promptPrefix: Prompt("Write one short cat spending line."))
         print("[FinanceCat] prewarm requested")
     }
 
@@ -153,21 +153,17 @@ final class FinanceCatAgent {
     }
 
     private static let analysisPrompt = """
-    Inspect the user's spending with the tools, then judge today.
-    Call getRecurringCharges to find repeat offenders, getAnomalies to find unusual purchases, and getMonthEndProjection to see where the month is heading.
-    Look for unnecessary purchases, repeated small charges that add up, and areas where the user is doing well.
-    The headline must be exactly one specific sentence for the Home screen.
-    The headline must mention the merchant, purchase type, or category behind the judgment when one exists.
-    Keep the headline under 75 characters.
-    Simplify noisy bank transaction names into plain language; say "that withdrawal" or "that transfer" instead of full ACH, card, check, or account strings.
-    Do not copy, list, enumerate, or restate the raw tool output.
-    Do not include cents, account numbers, check numbers, transaction IDs, multiple merchants, or comma-separated transaction lists in the headline.
-    Never use raw cent notation like "7500c"; write normal words instead, or avoid the amount entirely.
-    Never write generic summaries like "another day of spending" or "you spent money today."
-    Prefer lines like "Three coffees before noon? My whiskers noticed." or "No takeout today, impressive."
-    Make the headline sound lightly like a cat without forcing cat words. No emoji or emoticons anywhere.
-    Do not invent merchants. If there are no transactions today, comment on today's quiet spending.
-    Put the same core observation in roast, and put a short practical follow-up in tip.
+    Use the tools and write one short sentence for the cat to say on Home.
+    Comment only on today's purchases.
+    Use repeated-merchant context only when that same merchant also appears today.
+    Pick exactly one observation from today: a repeat offender, an unnecessary purchase, or something good.
+    Keep the headline under 12 words.
+    Sound like a dry little cat, but do not overdo cat words.
+    Do not use emoji, emoticons, money amounts, percentages, dates, IDs, account text, or lists.
+    Do not mention merchants that did not appear today.
+    Do not copy tool output.
+    Good examples: "Starbucks again? The cat noticed." "No takeout today. Suspiciously good."
+    Bad examples: "Sony PlayStation: 3 times" "You spent money today."
     """
 
     private func makeSession(snapshot: FinanceCatSnapshot) -> LanguageModelSession {
@@ -175,19 +171,15 @@ final class FinanceCatAgent {
             tools: [
                 GetBudgetStatusTool(snapshot: snapshot),
                 GetTodaysTransactionsTool(snapshot: snapshot),
-                GetRecentTransactionsTool(snapshot: snapshot),
-                GetMonthlyBreakdownTool(snapshot: snapshot),
-                GetRecurringChargesTool(snapshot: snapshot),
-                GetAnomaliesTool(snapshot: snapshot),
-                GetMonthEndProjectionTool(snapshot: snapshot)
+                GetRecurringChargesTool(snapshot: snapshot)
             ],
             instructions: """
             You are the private finance brain for a cartoon cat.
             You never call network APIs. You only use the provided local tools.
-            The analytical tools (recurring charges, anomalies, projection) already did the math; trust their numbers and never recompute them yourself.
-            Give short, specific, useful analysis based on the user's already-fetched app state.
-            Sound like a cat in attitude: observant, dry, a little picky, and occasionally pleased.
-            Do not overuse cat words. Avoid meow unless it genuinely fits. Never use emoji or emoticons.
+            Give short, specific analysis based on the user's already-fetched app state.
+            The Home headline is a single simple sentence, not a summary.
+            Sound observant, dry, a little picky, and occasionally pleased.
+            Never use emoji or emoticons.
             Friends and backend systems will not see this verdict.
             """
         )
@@ -228,19 +220,29 @@ private struct GetBudgetStatusTool: Tool {
 
     var name: String { "getBudgetStatus" }
     var description: String {
-        "Returns today's, week's, and month's spend, allowance, streak, date, and current backend mood."
+        "Returns simple budget context without exact money amounts."
     }
 
     func call(arguments: EmptyFinanceCatToolArguments) async throws -> String {
         let status = snapshot.budgetStatus
+        let dailyPercent = status.dailyAllowanceCents > 0
+            ? Int((Double(status.spentTodayCents) / Double(status.dailyAllowanceCents) * 100).rounded())
+            : 0
+        let dayStatus: String
+        if dailyPercent < 50 {
+            dayStatus = "comfortably under today's budget"
+        } else if dailyPercent < 80 {
+            dayStatus = "using today's budget steadily"
+        } else if dailyPercent <= 100 {
+            dayStatus = "close to today's budget"
+        } else {
+            dayStatus = "over today's budget"
+        }
+
         return """
-        asOfDate: \(status.asOfDate)
-        spentTodayCents: \(status.spentTodayCents)
-        spentWeekCents: \(status.spentWeekCents)
-        spentMonthCents: \(status.spentMonthCents)
-        dailyAllowanceCents: \(status.dailyAllowanceCents)
-        streak: \(status.streak)
-        backendMood: \(status.backendMood.rawValue)
+        Today is \(dayStatus).
+        Streak: \(status.streak) days.
+        Current mood: \(status.backendMood.title).
         """
     }
 }
@@ -251,7 +253,7 @@ private struct GetTodaysTransactionsTool: Tool {
 
     var name: String { "getTodaysTransactions" }
     var description: String {
-        "Returns today's local transactions, limited to 20."
+        "Returns today's merchant names only, limited to 12."
     }
 
     func call(arguments: EmptyFinanceCatToolArguments) async throws -> String {
@@ -259,10 +261,8 @@ private struct GetTodaysTransactionsTool: Tool {
             return "No synced transactions for today."
         }
 
-        return snapshot.todaysTransactions.enumerated().map { index, transaction in
-            let pending = transaction.pending ? " pending" : ""
-            return "\(index + 1). \(transaction.name): \(transaction.amountCents)c\(pending)"
-        }.joined(separator: "\n")
+        let names = snapshot.todaysTransactions.prefix(12).map { FinanceCatToolText.merchantName($0.name) }
+        return "Today's purchases: \(names.joined(separator: ", "))."
     }
 }
 
@@ -272,7 +272,7 @@ private struct GetRecentTransactionsTool: Tool {
 
     var name: String { "getRecentTransactions" }
     var description: String {
-        "Returns at most 20 recent local transactions already fetched by the app."
+        "Returns recent merchant names only."
     }
 
     func call(arguments: EmptyFinanceCatToolArguments) async throws -> String {
@@ -280,10 +280,8 @@ private struct GetRecentTransactionsTool: Tool {
             return "No synced transactions are available."
         }
 
-        return snapshot.recentTransactions.enumerated().map { index, transaction in
-            let pending = transaction.pending ? " pending" : ""
-            return "\(index + 1). \(transaction.name): \(transaction.amountCents)c on \(transaction.date ?? "unknown date")\(pending)"
-        }.joined(separator: "\n")
+        let names = snapshot.recentTransactions.prefix(12).map { FinanceCatToolText.merchantName($0.name) }
+        return "Recent purchases: \(names.joined(separator: ", "))."
     }
 }
 
@@ -293,7 +291,7 @@ private struct GetMonthlyBreakdownTool: Tool {
 
     var name: String { "getMonthlyBreakdown" }
     var description: String {
-        "Returns the top monthly merchants from the app's local spending breakdown."
+        "Returns this month's repeated merchants without exact money amounts."
     }
 
     func call(arguments: EmptyFinanceCatToolArguments) async throws -> String {
@@ -301,8 +299,12 @@ private struct GetMonthlyBreakdownTool: Tool {
             return "No monthly merchant breakdown is available."
         }
 
-        return snapshot.monthlyBreakdown.enumerated().map { index, item in
-            "\(index + 1). \(item.name): \(item.totalCents)c across \(item.count) purchases, last \(item.lastDate ?? "unknown date")"
+        return snapshot.monthlyBreakdown.prefix(8).map { item in
+            let name = FinanceCatToolText.merchantName(item.name)
+            if item.count == 1 {
+                return "\(name) appeared once this month."
+            }
+            return "\(name) appeared \(item.count) times this month."
         }.joined(separator: "\n")
     }
 }
@@ -313,17 +315,26 @@ private struct GetRecurringChargesTool: Tool {
 
     var name: String { "getRecurringCharges" }
     var description: String {
-        "Detects merchants charged more than once this period after normalizing noisy card-network names. Use it to catch death-by-a-thousand-cuts spending."
+        "Returns repeated monthly merchants only when that merchant also appeared today."
     }
 
     func call(arguments: EmptyFinanceCatToolArguments) async throws -> String {
+        let todaysMerchantKeys = Set(
+            snapshot.todaysTransactions.map { FinanceCatAnalytics.normalizedMerchant($0.name) }
+        )
+        guard !todaysMerchantKeys.isEmpty else {
+            return "No purchases today, so there are no today's repeat merchants."
+        }
+
         let charges = FinanceCatAnalytics.recurringCharges(in: snapshot.allTransactions)
+            .filter { todaysMerchantKeys.contains(FinanceCatAnalytics.normalizedMerchant($0.merchant)) }
         guard !charges.isEmpty else {
-            return "No repeated merchants this period."
+            return "None of today's merchants are repeated this month."
         }
 
         return charges.prefix(8).map { charge in
-            "\(charge.merchant): \(charge.occurrences) times, \(charge.totalCents)c total, about \(charge.typicalCents)c each"
+            let name = FinanceCatToolText.merchantName(charge.merchant)
+            return "\(name) appeared \(charge.occurrences) times this month."
         }.joined(separator: "\n")
     }
 }
@@ -344,7 +355,7 @@ private struct GetAnomaliesTool: Tool {
         }
 
         return anomalies.prefix(5).map { anomaly in
-            "\(anomaly.name): \(anomaly.amountCents)c, \(String(format: "%.1f", anomaly.zScore)) standard deviations above normal"
+            "\(FinanceCatToolText.merchantName(anomaly.name)) stood out as unusual."
         }.joined(separator: "\n")
     }
 }
@@ -368,14 +379,36 @@ private struct GetMonthEndProjectionTool: Tool {
             return "Not enough data to project the month."
         }
 
-        let pace = projection.isOverBudget
-            ? "on pace to overspend by \(projection.overBudgetCents)c"
-            : "on pace to stay within budget"
-        return """
-        projectedMonthEndCents: \(projection.projectedMonthEndCents)
-        monthlyBudgetCents: \(projection.monthlyBudgetCents)
-        daysElapsed: \(projection.daysElapsed) of \(projection.daysInMonth)
-        pace: \(pace)
-        """
+        return projection.isOverBudget
+            ? "The month is on pace to go over budget."
+            : "The month is on pace to stay within budget."
+    }
+}
+
+private enum FinanceCatToolText {
+    static func merchantName(_ rawName: String) -> String {
+        var name = rawName
+        name = name.replacingOccurrences(
+            of: #"(?i)\b(ach|eft|pos|debit|credit|withdrawal|online|transfer|check|tfr|tsfr|transaction|purchase)\b"#,
+            with: " ",
+            options: .regularExpression
+        )
+        name = name.replacingOccurrences(
+            of: #"\b\d{3,}\b"#,
+            with: " ",
+            options: .regularExpression
+        )
+        name = name.replacingOccurrences(
+            of: #"[_*/\\|#]+"#,
+            with: " ",
+            options: .regularExpression
+        )
+        name = name.replacingOccurrences(
+            of: #"\s+"#,
+            with: " ",
+            options: .regularExpression
+        )
+        name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return name.isEmpty ? "that purchase" : String(name.prefix(32))
     }
 }

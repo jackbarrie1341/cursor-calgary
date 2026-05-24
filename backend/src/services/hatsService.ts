@@ -174,6 +174,16 @@ async function ensureHatCatalogSeeded() {
 }
 
 export async function ensureSeededOwnedHats(userId: string) {
+  const [profile] = await db
+    .select({ userId: profiles.userId })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .limit(1);
+
+  if (!profile) {
+    return;
+  }
+
   await ensureHatCatalogSeeded();
 
   const starterSlugs = seedHats.filter((hat) => hat.starterOwned).map((hat) => hat.slug);

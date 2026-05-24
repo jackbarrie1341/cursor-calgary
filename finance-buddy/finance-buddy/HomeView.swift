@@ -443,175 +443,20 @@ private struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    if !appState.currentDisplayName.isEmpty {
-                        LabeledContent("Name", value: appState.currentDisplayName)
-                    }
-                    if !appState.currentUsername.isEmpty {
-                        LabeledContent("Account", value: appState.currentUsername)
-                    }
-                }
-
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Cat color")
-                            Spacer()
-                            Circle()
-                                .fill(catFillColor)
-                                .frame(width: 28, height: 28)
-                                .overlay(Circle().stroke(.secondary.opacity(0.35), lineWidth: 1))
-                        }
-
-                        VStack(spacing: 10) {
-                            colorSlider("Hue", value: $appState.catFillHue)
-                            colorSlider("Saturation", value: $appState.catFillSaturation)
-                            colorSlider("Brightness", value: $appState.catFillBrightness)
-                        }
-
-                        Button {
-                            randomizeCatColor()
-                        } label: {
-                            Label("Randomize", systemImage: "shuffle")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.bordered)
-
-                        BuddyImageView(
-                            mood: effectiveMood,
-                            overrideAssetName: nil,
-                            fallbackSymbolName: effectiveMood.symbolName,
-                            fallbackColor: moodColor,
-                            hatAssetKey: selectedHat?.assetKey,
-                            hatSymbolName: selectedHat?.symbolName,
-                            fillColor: catFillColor,
-                            size: 96
-                        )
-                        .frame(maxWidth: .infinity)
-                    }
-                } header: {
-                    Text("Buddy color")
-                }
-
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Toggle("Plant alive", isOn: $appState.isPlantAlive)
-                        Toggle("Accent couch color", isOn: $appState.isCouchAccentColor)
-
-                        HStack(spacing: 10) {
-                            Text("Couch fill")
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(couchFillColor)
-                                .frame(width: 32, height: 20)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                        .stroke(.secondary.opacity(0.35), lineWidth: 1)
-                                )
-                            Text(appState.isPlantAlive ? "Plant: Healthy" : "Plant: Dead")
-                                .font(DoodleFont.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                } header: {
-                    Text("Room placeholder")
-                }
-
-                Section {
-                    Toggle("Lobby music", isOn: $appState.isLobbyMusicEnabled)
-                } header: {
-                    Text("Audio")
-                }
-
-                Section {
-                    Toggle("Show buddy in Dynamic Island", isOn: $appState.isBuddyLiveActivityEnabled)
-                } header: {
-                    Text("Dynamic Island")
-                } footer: {
-                    Text("Shows the current budget-based buddy status when Live Activities are available.")
-                }
-
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Picker("Preview hat", selection: hatSelectionBinding) {
-                            Text("None").tag(Optional<String>.none)
-                            ForEach(appState.ownedHats) { hat in
-                                Text(hat.name).tag(Optional(hat.id))
-                            }
-                        }
-
-                        Button {
-                            Task {
-                                await appState.toggleEquipSelectedHat()
-                            }
-                        } label: {
-                            Text(isSelectedHatEquipped ? "Unequip selected hat" : "Equip selected hat")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .disabled(appState.selectedHatId == nil)
-                    }
-                } header: {
-                    Text("Hats")
-                }
-
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        TextField("Budget usage % (e.g. 72.5)", text: $budgetUtilOverrideInput)
-                            .keyboardType(.decimalPad)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-
-                        HStack(spacing: 8) {
-                            Button("Apply override") {
-                                applyBudgetUtilOverride()
-                            }
-                            .buttonStyle(.borderedProminent)
-
-                            Button("Clear override") {
-                                appState.devBudgetUtilOverridePercent = nil
-                                budgetUtilOverrideInput = ""
-                                budgetUtilOverrideError = nil
-                            }
-                            .buttonStyle(.bordered)
-                            .disabled(appState.devBudgetUtilOverridePercent == nil)
-                        }
-
-                        if let overridePercent = appState.devBudgetUtilOverridePercent {
-                            Text("Active override: \(overridePercent.formatted(.number.precision(.fractionLength(0...2))))% (\(effectiveMood.title))")
-                                .font(DoodleFont.caption)
-                                .foregroundStyle(.secondary)
-                        }
-
-                        if let budgetUtilOverrideError {
-                            Text(budgetUtilOverrideError)
-                                .font(DoodleFont.caption)
-                                .foregroundStyle(.red)
-                        }
-                    }
-
-                    Button {
-                        appState.retryFinanceCatVerdict()
-                    } label: {
-                        Label("Retry cat analysis", systemImage: "sparkles")
-                    }
-                } header: {
-                    Text("Developer")
-                }
-
-                Section {
-                    Button(role: .destructive) {
-                        dismiss()
-                        Task {
-                            await appState.signOut()
-                        }
-                    } label: {
-                        Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
-                    }
-                }
+            Form {
+                accountSection
+                buddyAppearanceSection
+                roomSection
+                appPreferencesSection
+                hatsSection
+                developerSection
+                signOutSection
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
             .font(DoodleFont.body)
+            .scrollContentBackground(.hidden)
+            .background(Color("HomeSceneDominant").ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") {
@@ -620,10 +465,193 @@ private struct SettingsView: View {
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
         .task {
             await appState.loadHats()
             syncBudgetUtilOverrideInputFromState()
+        }
+    }
+
+    private var accountSection: some View {
+        Section {
+            if !appState.currentDisplayName.isEmpty {
+                LabeledContent("Name", value: appState.currentDisplayName)
+            }
+            if !appState.currentUsername.isEmpty {
+                LabeledContent("Account", value: appState.currentUsername)
+            }
+        } header: {
+            Label("Account", systemImage: "person.crop.circle")
+        }
+    }
+
+    private var buddyAppearanceSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    BuddyImageView(
+                        mood: effectiveMood,
+                        overrideAssetName: nil,
+                        fallbackSymbolName: effectiveMood.symbolName,
+                        fallbackColor: moodColor,
+                        hatAssetKey: selectedHat?.assetKey,
+                        hatSymbolName: selectedHat?.symbolName,
+                        fillColor: catFillColor,
+                        size: 104
+                    )
+                    .frame(width: 112, height: 112)
+                    .background(Color("HomeSceneDominant"), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(effectiveMood.title)
+                            .font(DoodleFont.headline)
+                            .foregroundStyle(moodColor)
+
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(catFillColor)
+                                .frame(width: 30, height: 30)
+                                .overlay(Circle().stroke(.secondary.opacity(0.35), lineWidth: 1))
+
+                            Button {
+                                randomizeCatColor()
+                            } label: {
+                                Label("Randomize", systemImage: "shuffle")
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                VStack(spacing: 12) {
+                    colorSlider("Hue", value: $appState.catFillHue)
+                    colorSlider("Saturation", value: $appState.catFillSaturation)
+                    colorSlider("Brightness", value: $appState.catFillBrightness)
+                }
+            }
+            .padding(.vertical, 4)
+        } header: {
+            Label("Buddy", systemImage: "paintpalette")
+        }
+    }
+
+    private var roomSection: some View {
+        Section {
+            Toggle("Plant alive", isOn: $appState.isPlantAlive)
+            Toggle("Accent couch color", isOn: $appState.isCouchAccentColor)
+
+            HStack(spacing: 10) {
+                Text("Couch fill")
+                Spacer()
+                Text(appState.isPlantAlive ? "Plant healthy" : "Plant dead")
+                    .font(DoodleFont.caption)
+                    .foregroundStyle(.secondary)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(couchFillColor)
+                    .frame(width: 32, height: 20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                            .stroke(.secondary.opacity(0.35), lineWidth: 1)
+                    )
+            }
+        } header: {
+            Label("Room", systemImage: "sofa")
+        }
+    }
+
+    private var appPreferencesSection: some View {
+        Section {
+            Toggle("Lobby music", isOn: $appState.isLobbyMusicEnabled)
+            Toggle("Show buddy in Dynamic Island", isOn: $appState.isBuddyLiveActivityEnabled)
+        } header: {
+            Label("App", systemImage: "switch.2")
+        } footer: {
+            Text("Live Activities show the current budget-based buddy status when available.")
+        }
+    }
+
+    private var hatsSection: some View {
+        Section {
+            Picker("Preview hat", selection: hatSelectionBinding) {
+                Text("None").tag(Optional<String>.none)
+                ForEach(appState.ownedHats) { hat in
+                    Text(hat.name).tag(Optional(hat.id))
+                }
+            }
+
+            Button {
+                Task {
+                    await appState.toggleEquipSelectedHat()
+                }
+            } label: {
+                Text(isSelectedHatEquipped ? "Unequip selected hat" : "Equip selected hat")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(appState.selectedHatId == nil)
+        } header: {
+            Label("Hats", systemImage: "crown")
+        }
+    }
+
+    private var developerSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                TextField("Budget usage % (e.g. 72.5)", text: $budgetUtilOverrideInput)
+                    .keyboardType(.decimalPad)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                HStack(spacing: 8) {
+                    Button("Apply override") {
+                        applyBudgetUtilOverride()
+                    }
+                    .buttonStyle(.borderedProminent)
+
+                    Button("Clear override") {
+                        appState.devBudgetUtilOverridePercent = nil
+                        budgetUtilOverrideInput = ""
+                        budgetUtilOverrideError = nil
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(appState.devBudgetUtilOverridePercent == nil)
+                }
+
+                if let overridePercent = appState.devBudgetUtilOverridePercent {
+                    Text("Active override: \(overridePercent.formatted(.number.precision(.fractionLength(0...2))))% (\(effectiveMood.title))")
+                        .font(DoodleFont.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let budgetUtilOverrideError {
+                    Text(budgetUtilOverrideError)
+                        .font(DoodleFont.caption)
+                        .foregroundStyle(.red)
+                }
+            }
+
+            Button {
+                appState.retryFinanceCatVerdict()
+            } label: {
+                Label("Retry cat analysis", systemImage: "sparkles")
+            }
+        } header: {
+            Label("Developer", systemImage: "wrench.and.screwdriver")
+        }
+    }
+
+    private var signOutSection: some View {
+        Section {
+            Button(role: .destructive) {
+                dismiss()
+                Task {
+                    await appState.signOut()
+                }
+            } label: {
+                Label("Sign out", systemImage: "rectangle.portrait.and.arrow.right")
+            }
         }
     }
 

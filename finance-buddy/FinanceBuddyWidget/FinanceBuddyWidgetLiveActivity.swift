@@ -134,7 +134,7 @@ private struct LiveActivityLockScreenView: View {
 
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Text("Daily pace")
+                        Text("Daily budget")
                             .font(.system(size: 12, weight: .bold, design: .rounded))
                             .foregroundStyle(liveActivitySecondaryTextColor)
 
@@ -292,10 +292,10 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
 
     var paceLabel: String {
         switch dailyBudgetSpentPercent {
-        case ..<50: "plenty of room"
-        case 50..<80: "steady"
-        case 80..<100: "getting close"
-        default: "over pace"
+        case ..<50: "Plenty of room"
+        case 50..<80: "Steady"
+        case 80..<100: "Getting close"
+        default: "Over limit"
         }
     }
 
