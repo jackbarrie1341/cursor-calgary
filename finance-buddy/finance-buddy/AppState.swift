@@ -25,6 +25,8 @@ final class AppState: ObservableObject {
         }
     }
     @Published var isLoading = false
+    @Published var didCompleteInitialBoot = false
+    @Published var openingAnimationFinished = false
     @Published var errorMessage: String?
     @Published var linkToken: String?
     @Published var isPresentingPlaid = false

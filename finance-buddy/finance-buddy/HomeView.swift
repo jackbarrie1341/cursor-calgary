@@ -2,7 +2,10 @@ import SwiftUI
 
 struct HomeView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isShowingSettings = false
+
+    private let openingAnimationLastFrame = "3_Thought"
 
     private var buddy: BuddyState {
         appState.buddy ?? BuddyState(
@@ -57,6 +60,22 @@ struct HomeView: View {
                         controls
                     }
                     .padding()
+
+                    if appState.didCompleteInitialBoot {
+                        if appState.openingAnimationFinished {
+                            Image(openingAnimationLastFrame)
+                                .resizable()
+                                .interpolation(.none)
+                                .scaledToFit()
+                                .offset(x: 0, y: -200)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                                .allowsHitTesting(false)
+                        } else {
+                            OpeningAnimationView {
+                                appState.openingAnimationFinished = true
+                            }
+                        }
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -82,6 +101,11 @@ struct HomeView: View {
             SettingsView()
                 .environmentObject(appState)
         }
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            if oldPhase == .background && newPhase == .active {
+                appState.openingAnimationFinished = false
+            }
+        }
         .task {
             await appState.prepareFinanceCatForHome()
         }
@@ -91,7 +115,9 @@ struct HomeView: View {
         VStack(spacing: 16) {
             buddyHeroScene
 
-            financeCatBubble
+            Color.clear
+                .frame(height: 0)
+                .overlay { financeCatBubble }
 
             VStack(spacing: 8) {
                 Text(buddy.buddyName)
@@ -139,6 +165,15 @@ struct HomeView: View {
 
     private var roomBackgroundDecor: some View {
         ZStack(alignment: .bottom) {
+//            Image("Text_bubble")
+//                .resizable()
+//                .interpolation(.none)
+//                .scaledToFit()
+//                .frame(width: 400, height: 270)
+//                .offset(x: 0, y: -400)
+            
+            
+            
             Image("Wave")
                 .resizable()
                 .interpolation(.none)
@@ -199,44 +234,32 @@ struct HomeView: View {
 
     @ViewBuilder
     private var financeCatBubble: some View {
-        if let streaming = appState.financeCatStreamingHeadline, !streaming.isEmpty {
-            catBubble {
-                Text("\"\(streaming)\"")
-                    .font(DoodleFont.headline)
-                    .doodleTracking(-0.7)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+        if appState.openingAnimationFinished {
+            Group {
+                if let streaming = appState.financeCatStreamingHeadline, !streaming.isEmpty {
+                    Text("\"\(streaming)\"")
+                        .foregroundStyle(.black)
+                } else if let storedVerdict = appState.financeCatVerdict {
+                    Text("\"\(storedVerdict.verdict.headline)\"")
+                        .foregroundStyle(.black)
+                } else if appState.financeCatAgentStatus == .generating {
+                    Text("Your cat is reading the receipts...")
+                        .foregroundStyle(.black)
+                } else {
+                    TypewriterText("I don't have any thoughts right now")
+                        .foregroundStyle(.black)
+                }
             }
-        } else if let storedVerdict = appState.financeCatVerdict {
-            catBubble {
-                Text("\"\(storedVerdict.verdict.headline)\"")
-                    .font(DoodleFont.headline)
-                    .doodleTracking(-0.7)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else if appState.financeCatAgentStatus == .generating {
-            catBubble {
-                Label("Your cat is reading the receipts...", systemImage: "sparkles")
-                    .font(DoodleFont.body)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
-    private func catBubble<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        content()
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(14)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
-            .overlay(alignment: .top) {
-                Triangle()
-                    .fill(Color(.secondarySystemGroupedBackground))
-                    .frame(width: 18, height: 10)
-                    .offset(y: -9)
-            }
+            .font(DoodleFont.headline)
+            .doodleTracking(-0.7)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.horizontal, 14)
+            .offset(y: -400)
+            .transition(.opacity)
             .animation(.easeInOut(duration: 0.15), value: appState.financeCatStreamingHeadline)
+        }
     }
 
     private var spendCard: some View {
