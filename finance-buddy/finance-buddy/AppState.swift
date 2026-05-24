@@ -35,6 +35,15 @@ final class AppState: ObservableObject {
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?
+    @Published var devBudgetUtilOverridePercent: Double? = UserDefaults.standard.object(forKey: "dev_budget_util_override_percent") as? Double {
+        didSet {
+            if let devBudgetUtilOverridePercent {
+                UserDefaults.standard.set(devBudgetUtilOverridePercent, forKey: "dev_budget_util_override_percent")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "dev_budget_util_override_percent")
+            }
+        }
+    }
     @Published var isPlantAlive: Bool = UserDefaults.standard.object(forKey: "room_plant_alive") as? Bool ?? true {
         didSet {
             UserDefaults.standard.set(isPlantAlive, forKey: "room_plant_alive")
