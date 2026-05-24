@@ -65,6 +65,9 @@ struct HomeView: View {
             SettingsView()
                 .environmentObject(appState)
         }
+        .task {
+            await appState.prepareFinanceCatForHome()
+        }
     }
 
     private var buddyCard: some View {
@@ -81,6 +84,8 @@ struct HomeView: View {
                     .doodleTracking(-0.8)
                     .foregroundStyle(moodColor)
             }
+
+            financeCatBubble
 
             HStack(spacing: 10) {
                 Image(systemName: "flame")
@@ -161,6 +166,55 @@ struct HomeView: View {
                 .frame(width: 214, height: 118)
                 .offset(x: 14, y: 14)
         }
+    }
+
+    @ViewBuilder
+    private var financeCatBubble: some View {
+        if let streaming = appState.financeCatStreamingHeadline, !streaming.isEmpty {
+            catBubble {
+                Text("\"\(streaming)\"")
+                    .font(DoodleFont.headline)
+                    .doodleTracking(-0.7)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if let storedVerdict = appState.financeCatVerdict {
+            catBubble {
+                Text("\"\(storedVerdict.verdict.headline)\"")
+                    .font(DoodleFont.headline)
+                    .doodleTracking(-0.7)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if appState.financeCatAgentStatus == .generating {
+            catBubble {
+                Label("Your cat is reading the receipts...", systemImage: "sparkles")
+                    .font(DoodleFont.body)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else if let message = appState.financeCatAgentStatus.message {
+            catBubble {
+                Text(message)
+                    .font(DoodleFont.body)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func catBubble<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
+            .overlay(alignment: .top) {
+                Triangle()
+                    .fill(Color(.secondarySystemGroupedBackground))
+                    .frame(width: 18, height: 10)
+                    .offset(y: -9)
+            }
+            .animation(.easeInOut(duration: 0.15), value: appState.financeCatStreamingHeadline)
     }
 
     private var spendCard: some View {
@@ -260,8 +314,15 @@ struct HomeView: View {
         return min(Double(buddy.spentTodayCents) / Double(buddy.dailyAllowanceCents), 1.0)
     }
 
+    private var displayedMood: BuddyMood {
+        if let overridePercent = appState.devBudgetUtilOverridePercent {
+            return .forBudgetUsageRatio(overridePercent / 100)
+        }
+        return appState.financeCatVerdict?.verdict.mood.buddyMood ?? buddy.mood
+    }
+
     private var moodColor: Color {
-        switch effectiveMood {
+        switch displayedMood {
         case .happy: .green
         case .nervous: .yellow
         case .hungry: .orange
@@ -270,10 +331,7 @@ struct HomeView: View {
     }
 
     private var effectiveMood: BuddyMood {
-        guard let overridePercent = appState.devBudgetUtilOverridePercent else {
-            return buddy.mood
-        }
-        return .forBudgetUsageRatio(overridePercent / 100)
+        displayedMood
     }
 
     private var catFillColor: Color {
@@ -306,6 +364,17 @@ struct HomeView: View {
     private func money(_ cents: Int) -> String {
         let value = Decimal(cents) / 100
         return value.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD"))
+    }
+}
+
+private struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
+        path.closeSubpath()
+        return path
     }
 }
 
@@ -440,6 +509,12 @@ private struct SettingsView: View {
                                 .font(DoodleFont.caption)
                                 .foregroundStyle(.red)
                         }
+                    }
+
+                    Button {
+                        appState.retryFinanceCatVerdict()
+                    } label: {
+                        Label("Retry cat analysis", systemImage: "sparkles")
                     }
                 } header: {
                     Text("Developer")

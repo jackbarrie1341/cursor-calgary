@@ -54,6 +54,11 @@ final class AppState: ObservableObject {
             UserDefaults.standard.set(isCouchAccentColor, forKey: "room_couch_accent_color")
         }
     }
+    @Published var financeCatVerdict: StoredBuddyVerdict? = FinanceCatVerdictStore.load()
+    @Published var financeCatAgentStatus: FinanceCatAgentStatus = .idle
+    /// The headline as it streams in token-by-token. Non-nil only while a
+    /// verdict is actively being written.
+    @Published var financeCatStreamingHeadline: String?
     @Published var catFillHue: Double = UserDefaults.standard.object(forKey: "cat_fill_hue") as? Double ?? 0.04 {
         didSet {
             UserDefaults.standard.set(catFillHue, forKey: "cat_fill_hue")
@@ -91,6 +96,7 @@ final class AppState: ObservableObject {
     private var userId: String?
     private var realtimeTask: Task<Void, Never>?
     private var catColorPersistTask: Task<Void, Never>?
+    private var financeCatTask: Task<Void, Never>?
     private var isApplyingRemoteCatColor = false
 
     var backend: BackendClient {
@@ -102,9 +108,11 @@ final class AppState: ObservableObject {
         defer { isLoading = false }
 
         do {
-            try await restoreSession()
+            try await restoreSession(allowMissing: true)
             if isAuthenticated {
-                buddy = try await backend.getBuddy()
+                buddy = try await withFreshSession {
+                    try await self.backend.getBuddy()
+                }
                 await subscribeToBuddyUpdates()
             }
         } catch {
@@ -189,12 +197,14 @@ final class AppState: ObservableObject {
         await run {
             try await self.backend.refreshTransactions()
             self.spending = try await self.backend.getSpending()
+            self.refreshFinanceCatVerdictIfPossible(force: true)
         }
     }
 
     func refreshBuddy() async {
         await run {
             self.buddy = try await self.backend.getBuddy()
+            self.refreshFinanceCatVerdictIfPossible(force: false)
         }
     }
 
@@ -242,6 +252,13 @@ final class AppState: ObservableObject {
             self.ownedHats = []
             self.equippedHatId = nil
             self.selectedHatId = nil
+            self.spending = nil
+            self.financeCatTask?.cancel()
+            self.financeCatTask = nil
+            self.financeCatVerdict = nil
+            self.financeCatStreamingHeadline = nil
+            self.financeCatAgentStatus = .idle
+            FinanceCatVerdictStore.clear()
         }
     }
 
@@ -254,7 +271,31 @@ final class AppState: ObservableObject {
     func loadSpending() async {
         await run {
             self.spending = try await self.backend.getSpending()
+            self.refreshFinanceCatVerdictIfPossible(force: false)
         }
+    }
+
+    func prepareFinanceCatForHome() async {
+        if spending == nil, buddy?.isLinked == true {
+            await run {
+                self.spending = try await self.backend.getSpending()
+            }
+        }
+
+        guard let snapshot = FinanceCatSnapshot(buddy: buddy, spending: spending) else { return }
+
+        if #available(iOS 26.0, *) {
+            FinanceCatAgent().prewarm(snapshot: snapshot)
+        } else {
+            financeCatAgentStatus = .unavailable("Cat analysis requires iOS 26.")
+            return
+        }
+
+        refreshFinanceCatVerdictIfPossible(force: false)
+    }
+
+    func retryFinanceCatVerdict() {
+        refreshFinanceCatVerdictIfPossible(force: true)
     }
 
     func searchFriends(query: String) async {
@@ -300,34 +341,129 @@ final class AppState: ObservableObject {
 
         do {
             if requiresAuth {
-                try await restoreSession()
+                try await withFreshSession(operation)
+            } else {
+                try await operation()
             }
-            try await operation()
         } catch {
             errorMessage = error.localizedDescription
         }
     }
 
-    private func restoreSession() async throws {
+    private func withFreshSession<T>(_ operation: @escaping () async throws -> T) async throws -> T {
+        try await restoreSession()
+
+        do {
+            return try await operation()
+        } catch BackendError.server(let statusCode, _) where statusCode == 401 {
+            try await restoreSession(forceRefresh: true)
+            return try await operation()
+        }
+    }
+
+    private func refreshFinanceCatVerdictIfPossible(force: Bool) {
+        guard let snapshot = FinanceCatSnapshot(buddy: buddy, spending: spending) else { return }
+
+        guard #available(iOS 26.0, *) else {
+            financeCatAgentStatus = .unavailable("Cat analysis requires iOS 26.")
+            return
+        }
+
+        if !force,
+           let financeCatVerdict,
+           financeCatVerdict.isRecent,
+           financeCatVerdict.sourceTransactionCount == snapshot.transactionCount {
+            return
+        }
+
+        financeCatTask?.cancel()
+        financeCatAgentStatus = .generating
+        financeCatStreamingHeadline = nil
+
+        financeCatTask = Task { [snapshot] in
+            let agent = FinanceCatAgent()
+            do {
+                // Stream the verdict so the headline types out live, keeping the
+                // last fully-formed snapshot to persist once the model finishes.
+                var lastComplete: BuddyVerdict?
+                for try await partial in agent.streamVerdict(snapshot: snapshot) {
+                    guard !Task.isCancelled else { return }
+                    if let headline = partial.headline, !headline.isEmpty {
+                        self.financeCatStreamingHeadline = headline
+                    }
+                    if let complete = partial.completeVerdict {
+                        lastComplete = complete
+                    }
+                }
+                guard !Task.isCancelled else { return }
+
+                // If streaming ended without every required field, fall back to a
+                // one-shot generation so we never strand the user with a partial.
+                let verdict: BuddyVerdict
+                if let lastComplete {
+                    verdict = lastComplete
+                } else {
+                    verdict = try await agent.generateVerdict(snapshot: snapshot)
+                }
+                self.commitFinanceCatVerdict(
+                    verdict.withoutEmoji.refinedForHome(using: snapshot),
+                    transactionCount: snapshot.transactionCount
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard !Task.isCancelled else { return }
+                self.financeCatStreamingHeadline = nil
+                self.financeCatAgentStatus = .failed(error.localizedDescription)
+            }
+        }
+    }
+
+    private func commitFinanceCatVerdict(_ verdict: BuddyVerdict, transactionCount: Int) {
+        let storedVerdict = StoredBuddyVerdict(
+            verdict: verdict,
+            generatedAt: Date(),
+            sourceTransactionCount: transactionCount,
+            usedFoundationModels: true
+        )
+        FinanceCatVerdictStore.save(storedVerdict)
+        financeCatVerdict = storedVerdict
+        financeCatStreamingHeadline = nil
+        financeCatAgentStatus = .idle
+    }
+
+    private func restoreSession(forceRefresh: Bool = false, allowMissing: Bool = false) async throws {
         guard AppConfig.hasSupabaseConfig else {
             throw AppConfigurationError.missingSupabaseConfig
         }
 
-        if accessToken != nil, userId != nil {
-            return
-        }
-
         do {
-            let session = try await supabase.auth.session
+            let session: Session
+            if forceRefresh {
+                session = try await supabase.auth.refreshSession()
+            } else {
+                session = try await supabase.auth.session
+            }
             if session.user.isAnonymous {
                 try await supabase.auth.signOut()
-                isAuthenticated = false
-                return
+                clearLocalAuthState()
+                if allowMissing { return }
+                throw AuthSessionError.missingSession
             }
             apply(session: session)
         } catch {
-            isAuthenticated = false
+            clearLocalAuthState()
+            if allowMissing {
+                return
+            }
+            throw error
         }
+    }
+
+    private func clearLocalAuthState() {
+        accessToken = nil
+        userId = nil
+        isAuthenticated = false
     }
 
     private func apply(session: Session) {
