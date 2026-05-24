@@ -171,73 +171,7 @@ struct HatsView: View {
     }
 
     private var roomBackgroundDecor: some View {
-        ZStack(alignment: .bottom) {
-            Image("Plant_Fill")
-                .resizable()
-                .interpolation(.none)
-                .renderingMode(.template)
-                .foregroundStyle(clayPotColor)
-                .scaledToFit()
-                .frame(width: 138, height: 138)
-                .offset(x: -165, y: 10)
-
-            Image(plantLineAssetName)
-                .resizable()
-                .interpolation(.none)
-                .scaledToFit()
-                .frame(width: 138, height: 138)
-                .offset(x: -165, y: 10)
-
-            Image("Yarn_Fill")
-                .resizable()
-                .interpolation(.none)
-                .renderingMode(.template)
-                .foregroundStyle(yarnRedColor)
-                .scaledToFit()
-                .frame(width: 112, height: 112)
-                .offset(x: -90, y: 30)
-
-            Image("Yarn")
-                .resizable()
-                .interpolation(.none)
-                .scaledToFit()
-                .frame(width: 112, height: 112)
-                .offset(x: -90, y: 30)
-
-            Image("Couch_Fill")
-                .resizable()
-                .interpolation(.none)
-                .renderingMode(.template)
-                .foregroundStyle(couchFillColor)
-                .scaledToFit()
-                .frame(width: 320, height: 190)
-                .offset(x: 138, y: 20)
-
-            Image("Couch")
-                .resizable()
-                .interpolation(.none)
-                .scaledToFit()
-                .frame(width: 320, height: 190)
-                .offset(x: 138, y: 20)
-        }
-    }
-
-    private var couchFillColor: Color {
-        appState.isCouchAccentColor
-            ? Color(red: 0.95, green: 0.62, blue: 0.66)
-            : Color(red: 0.55, green: 0.70, blue: 0.86)
-    }
-
-    private var clayPotColor: Color {
-        Color(red: 0.76, green: 0.42, blue: 0.30)
-    }
-
-    private var yarnRedColor: Color {
-        Color(red: 0.78, green: 0.22, blue: 0.24)
-    }
-
-    private var plantLineAssetName: String {
-        appState.isPlantAlive ? "Plant_Healthy" : "Plant_Dead"
+        Color.clear
     }
 }
 
