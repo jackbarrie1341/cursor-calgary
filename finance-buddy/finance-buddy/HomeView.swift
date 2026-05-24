@@ -14,6 +14,9 @@ struct HomeView: View {
             streak: 0,
             asOfDate: "",
             buddyName: "Buddy",
+            catFillHue: nil,
+            catFillSaturation: nil,
+            catFillBrightness: nil,
             isLinked: false,
             hasOnboarded: true
         )

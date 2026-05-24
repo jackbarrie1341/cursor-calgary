@@ -34,6 +34,9 @@ struct BuddyState: Codable, Equatable {
     let streak: Int
     let asOfDate: String
     let buddyName: String
+    let catFillHue: Double?
+    let catFillSaturation: Double?
+    let catFillBrightness: Double?
     let isLinked: Bool
     let hasOnboarded: Bool
 }
@@ -98,6 +101,9 @@ struct FriendBuddy: Codable, Identifiable, Equatable {
     let username: String
     let displayName: String
     let buddyName: String
+    let catFillHue: Double?
+    let catFillSaturation: Double?
+    let catFillBrightness: Double?
     let mood: BuddyMood
     let streak: Int
 
@@ -109,6 +115,9 @@ struct FriendSearchResult: Codable, Identifiable, Equatable {
     let username: String
     let displayName: String
     let buddyName: String
+    let catFillHue: Double?
+    let catFillSaturation: Double?
+    let catFillBrightness: Double?
     let mood: BuddyMood
     let streak: Int
     let isFriend: Bool

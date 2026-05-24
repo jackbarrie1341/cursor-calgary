@@ -7,6 +7,7 @@ final class AppState: ObservableObject {
     @Published var buddy: BuddyState? {
         didSet {
             if let buddy {
+                applyCatColor(from: buddy)
                 saveWidgetSnapshot(for: buddy)
             } else {
                 BuddyWidgetSnapshotStore.clear()
@@ -29,6 +30,7 @@ final class AppState: ObservableObject {
             if let buddy {
                 saveWidgetSnapshot(for: buddy)
             }
+            persistCatColorIfNeeded()
         }
     }
     @Published var catFillSaturation: Double = UserDefaults.standard.object(forKey: "cat_fill_saturation") as? Double ?? 0.48 {
@@ -37,6 +39,7 @@ final class AppState: ObservableObject {
             if let buddy {
                 saveWidgetSnapshot(for: buddy)
             }
+            persistCatColorIfNeeded()
         }
     }
     @Published var catFillBrightness: Double = UserDefaults.standard.object(forKey: "cat_fill_brightness") as? Double ?? 1.0 {
@@ -45,6 +48,7 @@ final class AppState: ObservableObject {
             if let buddy {
                 saveWidgetSnapshot(for: buddy)
             }
+            persistCatColorIfNeeded()
         }
     }
 
@@ -56,6 +60,8 @@ final class AppState: ObservableObject {
     private var accessToken: String?
     private var userId: String?
     private var realtimeTask: Task<Void, Never>?
+    private var catColorPersistTask: Task<Void, Never>?
+    private var isApplyingRemoteCatColor = false
 
     var backend: BackendClient {
         BackendClient(baseURL: AppConfig.backendBaseURL, accessToken: accessToken)
@@ -210,6 +216,9 @@ final class AppState: ObservableObject {
                     username: result.username,
                     displayName: result.displayName,
                     buddyName: result.buddyName,
+                    catFillHue: result.catFillHue,
+                    catFillSaturation: result.catFillSaturation,
+                    catFillBrightness: result.catFillBrightness,
                     mood: result.mood,
                     streak: result.streak,
                     isFriend: true
@@ -271,6 +280,39 @@ final class AppState: ObservableObject {
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness
         )
+    }
+
+    private func applyCatColor(from buddy: BuddyState) {
+        guard
+            let hue = buddy.catFillHue,
+            let saturation = buddy.catFillSaturation,
+            let brightness = buddy.catFillBrightness
+        else { return }
+
+        isApplyingRemoteCatColor = true
+        catFillHue = hue
+        catFillSaturation = saturation
+        catFillBrightness = brightness
+        isApplyingRemoteCatColor = false
+    }
+
+    private func persistCatColorIfNeeded() {
+        guard !isApplyingRemoteCatColor, accessToken != nil, buddy != nil else { return }
+
+        let hue = catFillHue
+        let saturation = catFillSaturation
+        let brightness = catFillBrightness
+        catColorPersistTask?.cancel()
+        catColorPersistTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(350))
+                try await backend.updateCatColor(hue: hue, saturation: saturation, brightness: brightness)
+            } catch is CancellationError {
+                return
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private func subscribeToBuddyUpdates() async {

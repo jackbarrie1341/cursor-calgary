@@ -75,6 +75,18 @@ struct BackendClient {
         return response.friend
     }
 
+    func updateCatColor(hue: Double, saturation: Double, brightness: Double) async throws {
+        let _: BuddyState = try await send(
+            path: "/profile/color",
+            method: "PATCH",
+            body: CatColorRequest(
+                catFillHue: hue,
+                catFillSaturation: saturation,
+                catFillBrightness: brightness
+            )
+        )
+    }
+
     private func send<Response: Decodable, Body: Encodable>(
         path: String,
         method: String,
@@ -134,6 +146,12 @@ private struct ExchangePublicTokenRequest: Encodable {
 
 private struct AddFriendRequest: Encodable {
     let username: String
+}
+
+private struct CatColorRequest: Encodable {
+    let catFillHue: Double
+    let catFillSaturation: Double
+    let catFillBrightness: Double
 }
 
 private struct EmptyBody: Codable {}

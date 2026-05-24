@@ -33,6 +33,12 @@ const addFriendSchema = z.object({
   username: z.string().trim().min(3).max(20).regex(/^[a-zA-Z0-9_]+$/)
 });
 
+const colorSchema = z.object({
+  catFillHue: z.number().min(0).max(1),
+  catFillSaturation: z.number().min(0).max(1),
+  catFillBrightness: z.number().min(0).max(1)
+});
+
 export const app = express();
 
 app.use(helmet());
@@ -192,6 +198,27 @@ app.get("/buddy", requireAuth, async (req, res, next) => {
   }
 });
 
+app.patch("/profile/color", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const input = colorSchema.parse(req.body);
+
+    await db
+      .update(profiles)
+      .set({
+        catFillHue: Math.round(input.catFillHue * 100),
+        catFillSaturation: Math.round(input.catFillSaturation * 100),
+        catFillBrightness: Math.round(input.catFillBrightness * 100),
+        updatedAt: new Date()
+      })
+      .where(eq(profiles.userId, authReq.userId));
+
+    res.json(await getBuddyPayload(authReq.userId));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/friends", requireAuth, async (req, res, next) => {
   try {
     const authReq = req as AuthenticatedRequest;
@@ -202,6 +229,9 @@ app.get("/friends", requireAuth, async (req, res, next) => {
           p.username,
           p.display_name as "displayName",
           p.buddy_name as "buddyName",
+          (p.cat_fill_hue::float / 100) as "catFillHue",
+          (p.cat_fill_saturation::float / 100) as "catFillSaturation",
+          (p.cat_fill_brightness::float / 100) as "catFillBrightness",
           coalesce(bs.mood::text, 'happy') as mood,
           coalesce(bs.streak, 0) as streak
         from friendships f
@@ -231,6 +261,9 @@ app.get("/friends/search", requireAuth, async (req, res, next) => {
           p.username,
           p.display_name as "displayName",
           p.buddy_name as "buddyName",
+          (p.cat_fill_hue::float / 100) as "catFillHue",
+          (p.cat_fill_saturation::float / 100) as "catFillSaturation",
+          (p.cat_fill_brightness::float / 100) as "catFillBrightness",
           coalesce(bs.mood::text, 'happy') as mood,
           coalesce(bs.streak, 0) as streak,
           exists (
@@ -296,6 +329,9 @@ app.post("/friends", requireAuth, async (req, res, next) => {
           p.username,
           p.display_name as "displayName",
           p.buddy_name as "buddyName",
+          (p.cat_fill_hue::float / 100) as "catFillHue",
+          (p.cat_fill_saturation::float / 100) as "catFillSaturation",
+          (p.cat_fill_brightness::float / 100) as "catFillBrightness",
           coalesce(bs.mood::text, 'happy') as mood,
           coalesce(bs.streak, 0) as streak
         from profiles p

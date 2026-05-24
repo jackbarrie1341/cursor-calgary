@@ -25,6 +25,9 @@ export const profiles = pgTable(
     monthlyBudgetCents: integer("monthly_budget_cents").notNull(),
     dailyAllowanceCents: integer("daily_allowance_cents").notNull(),
     buddyName: text("buddy_name").notNull().default("Buddy"),
+    catFillHue: integer("cat_fill_hue").notNull().default(4),
+    catFillSaturation: integer("cat_fill_saturation").notNull().default(48),
+    catFillBrightness: integer("cat_fill_brightness").notNull().default(100),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow()
   },

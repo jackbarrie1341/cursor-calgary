@@ -13,6 +13,9 @@ export type BuddyPayload = {
   streak: number;
   asOfDate: string;
   buddyName: string;
+  catFillHue: number;
+  catFillSaturation: number;
+  catFillBrightness: number;
   isLinked: boolean;
   hasOnboarded: boolean;
 };
@@ -32,6 +35,9 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
       streak: 0,
       asOfDate: localDateString(new Date(), env.APP_TIME_ZONE),
       buddyName: "Buddy",
+      catFillHue: 0.04,
+      catFillSaturation: 0.48,
+      catFillBrightness: 1,
       isLinked: Boolean(item),
       hasOnboarded: false
     };
@@ -50,6 +56,9 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
     streak: state.streak,
     asOfDate: state.stateDate,
     buddyName: profile.buddyName,
+    catFillHue: profile.catFillHue / 100,
+    catFillSaturation: profile.catFillSaturation / 100,
+    catFillBrightness: profile.catFillBrightness / 100,
     isLinked: Boolean(item),
     hasOnboarded: true
   };
@@ -103,6 +112,9 @@ export async function recomputeBuddyState(userId: string): Promise<BuddyPayload>
     streak: state.streak,
     asOfDate: state.stateDate,
     buddyName: profile.buddyName,
+    catFillHue: profile.catFillHue / 100,
+    catFillSaturation: profile.catFillSaturation / 100,
+    catFillBrightness: profile.catFillBrightness / 100,
     isLinked: Boolean(item),
     hasOnboarded: true
   };

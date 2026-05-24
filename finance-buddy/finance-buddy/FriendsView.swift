@@ -136,6 +136,7 @@ private struct FriendCard: View {
                 overrideAssetName: nil,
                 fallbackSymbolName: friend.mood.symbolName,
                 fallbackColor: friend.mood.color,
+                fillColor: friend.catFillColor,
                 size: 96
             )
 
@@ -186,5 +187,15 @@ private extension BuddyMood {
         case .hungry: .orange
         case .sick: .red
         }
+    }
+}
+
+private extension FriendBuddy {
+    var catFillColor: Color {
+        Color(
+            hue: catFillHue ?? 0.04,
+            saturation: catFillSaturation ?? 0.48,
+            brightness: catFillBrightness ?? 1.0
+        )
     }
 }
