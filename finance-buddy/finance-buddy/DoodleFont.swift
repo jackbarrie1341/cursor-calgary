@@ -11,6 +11,11 @@ enum DoodleFont {
         ("BangTamvan", "ttf")
     ])
 
+    private static let beanTitleFontName = registerFont(candidates: [
+        ("Candy Beans", "otf"),
+        ("catfont2", "otf")
+    ])
+
     private static func registerFont(candidates: [(name: String, ext: String)]) -> String {
         for candidate in candidates {
             guard
@@ -36,7 +41,12 @@ enum DoodleFont {
         .custom(titleFontName, size: size)
     }
 
+    static func beanTitleCustom(_ size: CGFloat) -> Font {
+        .custom(beanTitleFontName, size: size)
+    }
+
     static let largeTitle = titleCustom(38)
+    static let homeLargeTitle = beanTitleCustom(38)
     static let title = titleCustom(28)
     static let title2 = titleCustom(24)
     static let title3 = titleCustom(21)

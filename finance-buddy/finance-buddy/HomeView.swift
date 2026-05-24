@@ -42,7 +42,7 @@ struct HomeView: View {
 
                     VStack(alignment: .leading, spacing: 0) {
                         Text("pawket change")
-                            .font(DoodleFont.largeTitle)
+                            .font(DoodleFont.homeLargeTitle)
                             .doodleTracking(1.5)
                             .frame(maxWidth: .infinity, alignment: .center)
                             .padding(.top, 20)
