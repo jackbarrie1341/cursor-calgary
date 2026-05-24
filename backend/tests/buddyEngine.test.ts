@@ -3,10 +3,12 @@ import { calculateDailyAllowanceCents, localDateString, moodForSpend, streakForT
 
 describe("buddy engine", () => {
   it("maps spend ratio to moods", () => {
+    expect(moodForSpend(499, 1000)).toBe("sick");
     expect(moodForSpend(500, 1000)).toBe("happy");
-    expect(moodForSpend(501, 1000)).toBe("nervous");
-    expect(moodForSpend(801, 1000)).toBe("hungry");
-    expect(moodForSpend(1001, 1000)).toBe("sick");
+    expect(moodForSpend(850, 1000)).toBe("happy");
+    expect(moodForSpend(851, 1000)).toBe("nervous");
+    expect(moodForSpend(1100, 1000)).toBe("nervous");
+    expect(moodForSpend(1101, 1000)).toBe("hungry");
   });
 
   it("calculates daily allowance for the active month", () => {

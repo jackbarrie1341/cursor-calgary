@@ -70,8 +70,7 @@ struct BuddyImageView: View {
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
-                    .frame(width: size * 0.68, height: size * 0.68)
-                    .offset(y: -size * 0.28)
+                    .frame(width: size, height: size)
             } else if let hatSymbolName {
                 Image(systemName: hatSymbolName)
                     .font(.system(size: size * 0.2, weight: .bold))
@@ -133,7 +132,7 @@ extension BuddyMood {
         switch self {
         case .happy: "Cat_Cheesing"
         case .nervous: "Cat_Worried"
-        case .hungry: "Cat_Tear_Pool"
+        case .hungry: "Cat_Broke"
         case .sick: "Cat_Money_Spread"
         }
     }

@@ -117,6 +117,8 @@ struct HomeView: View {
                 overrideAssetName: appState.debugBuddyAssetName,
                 fallbackSymbolName: buddy.mood.symbolName,
                 fallbackColor: moodColor,
+                hatAssetKey: equippedHat?.assetKey,
+                hatSymbolName: equippedHat?.symbolName,
                 fillColor: catFillColor
             )
             .padding(.bottom, 20)
@@ -289,6 +291,11 @@ struct HomeView: View {
         appState.isPlantAlive ? "Plant_Healthy" : "Plant_Dead"
     }
 
+    private var equippedHat: HatItem? {
+        guard let equippedHatId = appState.equippedHatId else { return nil }
+        return appState.ownedHats.first(where: { $0.id == equippedHatId })
+    }
+
     private func money(_ cents: Int) -> String {
         let value = Decimal(cents) / 100
         return value.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD"))
@@ -333,6 +340,8 @@ private struct SettingsView: View {
                             overrideAssetName: "Cat_Cheesing",
                             fallbackSymbolName: BuddyMood.happy.symbolName,
                             fallbackColor: .green,
+                            hatAssetKey: selectedHat?.assetKey,
+                            hatSymbolName: selectedHat?.symbolName,
                             fillColor: catFillColor,
                             size: 96
                         )
@@ -467,6 +476,11 @@ private struct SettingsView: View {
 
     private var isSelectedHatEquipped: Bool {
         appState.selectedHatId != nil && appState.selectedHatId == appState.equippedHatId
+    }
+
+    private var selectedHat: HatItem? {
+        guard let selectedHatId = appState.selectedHatId else { return nil }
+        return appState.ownedHats.first(where: { $0.id == selectedHatId })
     }
 
     private var darknessBinding: Binding<Double> {

@@ -4,12 +4,14 @@
 node_modules/
 dist/
 coverage/
+backend/package-lock.json
 .env
 .env.*
 !.env.example
 
 # Xcode
 DerivedData/
+finance-buddy/build/
 *.xcuserstate
 *.xcuserdata/
 xcuserdata/
