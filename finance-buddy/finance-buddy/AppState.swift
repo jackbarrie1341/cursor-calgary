@@ -132,7 +132,7 @@ final class AppState: ObservableObject {
     private var financeCatTask: Task<Void, Never>?
     private var purchaseReactionTask: Task<Void, Never>?
     private var lastKnownSpentTodayCents: Int?
-    private var pendingPurchaseAmountCents: Int?
+    @Published private(set) var pendingPurchaseAmountCents: Int?
     private var isApplyingRemoteCatColor = false
 
     var backend: BackendClient {
@@ -613,8 +613,6 @@ final class AppState: ObservableObject {
         guard isBuddyLiveActivityEnabled, let buddy else { return }
         guard #available(iOS 16.2, *) else { return }
 
-        let purchaseAmount = pendingPurchaseAmountCents
-
         Task {
             await BuddyLiveActivityController.startOrUpdate(
                 buddy: buddy,
@@ -623,8 +621,7 @@ final class AppState: ObservableObject {
                 frameIndex: 1,
                 catFillHue: catFillHue,
                 catFillSaturation: catFillSaturation,
-                catFillBrightness: catFillBrightness,
-                purchaseAmountCents: purchaseAmount
+                catFillBrightness: catFillBrightness
             )
         }
     }

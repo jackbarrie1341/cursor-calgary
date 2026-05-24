@@ -76,6 +76,8 @@ struct HomeView: View {
                             }
                         }
                     }
+
+                    purchaseReactionOverlay
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -161,6 +163,22 @@ struct HomeView: View {
         .frame(height: 245)
         .frame(maxWidth: .infinity)
 
+    }
+
+    @ViewBuilder
+    private var purchaseReactionOverlay: some View {
+        if let cents = appState.pendingPurchaseAmountCents {
+            let frames = cents > 0
+                ? PurchaseReactionOverlayView.sadFrames
+                : PurchaseReactionOverlayView.happyFrames
+            PurchaseReactionOverlayView(frameAssetNames: frames)
+                .frame(width: 200, height: 200)
+                .offset(x: 0, y: -120)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .allowsHitTesting(false)
+                .transition(.opacity)
+                .animation(.easeInOut(duration: 0.2), value: appState.pendingPurchaseAmountCents)
+        }
     }
 
     private var roomBackgroundDecor: some View {

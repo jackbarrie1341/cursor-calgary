@@ -21,7 +21,6 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
         let catFillBrightness: Double
         let hatAssetKey: String?
         let hatSymbolName: String?
-        var purchaseAmountCents: Int? = nil
     }
 
     let name: String
@@ -30,41 +29,25 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
 struct FinanceBuddyWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: FinanceBuddyWidgetAttributes.self) { context in
-            HStack(spacing: 12) {
-                LiveActivityBuddyImageView(state: context.state)
-                    .frame(width: 72, height: 72)
-                if let reactionText = context.state.reactionText {
-                    Text(reactionText)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .monospacedDigit()
-                        .foregroundStyle(context.state.reactionColor)
-                }
-            }
-            .frame(maxWidth: .infinity, minHeight: 96)
-            .activityBackgroundTint(widgetBackgroundColor)
-            .activitySystemActionForegroundColor(Color.primary)
+            LiveActivityBuddyImageView(state: context.state)
+                .frame(width: 72, height: 72)
+                .frame(maxWidth: .infinity, minHeight: 96)
+                .activityBackgroundTint(widgetBackgroundColor)
+                .activitySystemActionForegroundColor(Color.primary)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.center) {
-                    HStack(spacing: 10) {
-                        LiveActivityBuddyImageView(state: context.state)
-                            .frame(width: 64, height: 64)
-                        if let reactionText = context.state.reactionText {
-                            Text(reactionText)
-                                .font(.system(size: 20, weight: .bold, design: .rounded))
-                                .monospacedDigit()
-                                .foregroundStyle(context.state.reactionColor)
-                        }
-                    }
+                    LiveActivityBuddyImageView(state: context.state)
+                        .frame(width: 64, height: 64)
                 }
             } compactLeading: {
                 LiveActivityBuddyImageView(state: context.state)
                     .frame(width: 28, height: 28)
             } compactTrailing: {
-                Text(context.state.reactionText ?? context.state.percentText)
+                Text(context.state.percentText)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(context.state.purchaseAmountCents != nil ? context.state.reactionColor : context.state.moodColor)
+                    .foregroundStyle(context.state.moodColor)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
             } minimal: {
@@ -129,13 +112,6 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
 
     func lineAssetName(frameIndex: Int) -> String {
         let frameIndex = normalizedFrameIndex(frameIndex)
-        if let cents = purchaseAmountCents {
-            if cents > 0 {
-                return "Cat_Money_Spread_\(frameIndex)"
-            } else {
-                return "\(frameIndex)_Cat_Cheesing"
-            }
-        }
         switch mood {
         case "nervous": return "\(frameIndex)_Cat_Worried"
         case "hungry": return "\(frameIndex)_Cat_Broke"
@@ -146,31 +122,12 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
 
     func fillAssetName(frameIndex: Int) -> String? {
         let frameIndex = normalizedFrameIndex(frameIndex)
-        if let cents = purchaseAmountCents {
-            if cents > 0 {
-                return "\(frameIndex)_Fill_Cat_Money_Spread"
-            } else {
-                return "\(frameIndex)_Fill_Cat_Cheesing"
-            }
-        }
         switch mood {
         case "nervous": return "1_2_Fill_Cat_Worried"
         case "hungry": return "1_2_Fill_Cat_Broke"
         case "sick": return "\(frameIndex)_Fill_Cat_Money_Spread"
         default: return "\(frameIndex)_Fill_Cat_Cheesing"
         }
-    }
-
-    var reactionText: String? {
-        guard let cents = purchaseAmountCents else { return nil }
-        let dollars = Double(abs(cents)) / 100.0
-        let prefix = cents > 0 ? "-" : "+"
-        return String(format: "%@$%.2f", prefix, dollars)
-    }
-
-    var reactionColor: Color {
-        guard let cents = purchaseAmountCents else { return moodColor }
-        return cents > 0 ? .red : Color(red: 0.05, green: 0.62, blue: 0.30)
     }
 
     var moodColor: Color {
