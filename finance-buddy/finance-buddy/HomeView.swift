@@ -172,12 +172,12 @@ struct HomeView: View {
                 ? PurchaseReactionOverlayView.sadFrames
                 : PurchaseReactionOverlayView.happyFrames
             PurchaseReactionOverlayView(frameAssetNames: frames)
-                .frame(width: 200, height: 200)
-                .offset(x: 0, y: -120)
+                .frame(width: 300, height: 300)
+                .offset(x: -10, y: -70)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .allowsHitTesting(false)
                 .transition(.opacity)
-                .animation(.easeInOut(duration: 0.2), value: appState.pendingPurchaseAmountCents)
+                .animation(.easeInOut(duration: 20), value: appState.pendingPurchaseAmountCents)
         }
     }
 
