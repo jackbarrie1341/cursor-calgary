@@ -65,22 +65,6 @@ struct HatsView: View {
     private func topPreviewSection(height: CGFloat) -> some View {
         VStack(spacing: 12) {
             ZStack(alignment: .bottom) {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                Color("HomeSceneDominant").opacity(0.95),
-                                Color("HomeSceneDominant").opacity(0.68)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(.white.opacity(0.3), lineWidth: 1)
-                    )
-
                 roomBackgroundDecor
 
                 BuddyImageView(
@@ -192,17 +176,33 @@ struct HatsView: View {
                 .resizable()
                 .interpolation(.none)
                 .renderingMode(.template)
-                .foregroundStyle(Color.green.opacity(0.35))
+                .foregroundStyle(clayPotColor)
                 .scaledToFit()
-                .frame(width: 84, height: 84)
-                .offset(x: -122, y: 9)
+                .frame(width: 138, height: 138)
+                .offset(x: -165, y: 10)
 
             Image(plantLineAssetName)
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
-                .frame(width: 84, height: 84)
-                .offset(x: -122, y: 9)
+                .frame(width: 138, height: 138)
+                .offset(x: -165, y: 10)
+
+            Image("Yarn_Fill")
+                .resizable()
+                .interpolation(.none)
+                .renderingMode(.template)
+                .foregroundStyle(yarnRedColor)
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .offset(x: -90, y: 30)
+
+            Image("Yarn")
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 112, height: 112)
+                .offset(x: -90, y: 30)
 
             Image("Couch_Fill")
                 .resizable()
@@ -210,15 +210,15 @@ struct HatsView: View {
                 .renderingMode(.template)
                 .foregroundStyle(couchFillColor)
                 .scaledToFit()
-                .frame(width: 238, height: 132)
-                .offset(x: 16, y: 18)
+                .frame(width: 320, height: 190)
+                .offset(x: 138, y: 20)
 
             Image("Couch")
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
-                .frame(width: 238, height: 132)
-                .offset(x: 16, y: 18)
+                .frame(width: 320, height: 190)
+                .offset(x: 138, y: 20)
         }
     }
 
@@ -226,6 +226,14 @@ struct HatsView: View {
         appState.isCouchAccentColor
             ? Color(red: 0.95, green: 0.62, blue: 0.66)
             : Color(red: 0.55, green: 0.70, blue: 0.86)
+    }
+
+    private var clayPotColor: Color {
+        Color(red: 0.76, green: 0.42, blue: 0.30)
+    }
+
+    private var yarnRedColor: Color {
+        Color(red: 0.78, green: 0.22, blue: 0.24)
     }
 
     private var plantLineAssetName: String {

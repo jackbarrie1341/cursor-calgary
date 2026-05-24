@@ -30,36 +30,53 @@ struct HomeView: View {
                 .ignoresSafeArea()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    HStack(alignment: .center) {
-                        Text("Finance Buddy")
-                            .font(DoodleFont.largeTitle)
-                            .doodleTracking(-1.2)
-
-                        Spacer()
-
-                        Button {
-                            isShowingSettings = true
-                        } label: {
-                            Image("settings")
-                                .resizable()
-                                .interpolation(.none)
-                                .scaledToFit()
-                                .frame(width: 28, height: 28)
-                                .frame(width: 44, height: 44)
-                                .background(Color(.systemBackground), in: Circle())
+                ZStack(alignment: .top) {
+                    GeometryReader { proxy in
+                        VStack(spacing: 0) {
+                            homeBackgroundColor
+                                .frame(height: proxy.size.height * 0.55)
+                            buddyTextPanelColor
+                                .frame(height: proxy.size.height * 0.45)
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Settings")
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    buddyCard
-                    spendCard
-                    controls
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("pawket change")
+                            .font(DoodleFont.largeTitle)
+                            .doodleTracking(1.5)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .padding(.top, 20)
+                            .padding(.bottom, 225)
+
+                        buddyCard
+                            .padding(.bottom, 70)
+
+                        spendCard
+                            .padding(.bottom, 20)
+
+                        controls
+                    }
+                    .padding()
                 }
-                .padding()
+                .frame(maxWidth: .infinity)
             }
+        }
+        .overlay(alignment: .topTrailing) {
+            Button {
+                isShowingSettings = true
+            } label: {
+                Image("settings")
+                    .resizable()
+                    .interpolation(.none)
+                    .scaledToFit()
+                    .frame(width: 28, height: 28)
+                    .frame(width: 44, height: 44)
+                    .background(homeBackgroundColor, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Settings")
+            .padding(.trailing, 16)
+            .padding(.top, 4)
         }
         .sheet(isPresented: $isShowingSettings) {
             SettingsView()
@@ -74,7 +91,9 @@ struct HomeView: View {
         VStack(spacing: 16) {
             buddyHeroScene
 
-            VStack(spacing: 6) {
+            financeCatBubble
+
+            VStack(spacing: 8) {
                 Text(buddy.buddyName)
                     .font(DoodleFont.largeTitle)
                     .doodleTracking(-1.2)
@@ -83,38 +102,22 @@ struct HomeView: View {
                     .font(DoodleFont.title3)
                     .doodleTracking(-0.8)
                     .foregroundStyle(moodColor)
-            }
 
-            financeCatBubble
-
-            HStack(spacing: 10) {
-                Image(systemName: "flame")
-                Text("\(buddy.streak) day streak")
+                HStack(spacing: 10) {
+                    Image(systemName: "flame")
+                    Text("\(buddy.streak) day streak")
+                }
+                .font(DoodleFont.headline)
+                .padding(.top, 4)
             }
-            .font(DoodleFont.headline)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .background(Color(.secondarySystemGroupedBackground), in: Capsule())
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
         }
         .frame(maxWidth: .infinity)
-        .padding(20)
-        .background(Color(.systemBackground).opacity(0.92), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var buddyHeroScene: some View {
         ZStack(alignment: .bottom) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [homeBackgroundColor.opacity(0.86), homeBackgroundColor.opacity(0.64)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .stroke(.white.opacity(0.28), lineWidth: 1)
-
             roomBackgroundDecor
 
             BuddyImageView(
@@ -130,25 +133,50 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: 245)
+        .frame(maxWidth: .infinity)
+
     }
 
     private var roomBackgroundDecor: some View {
         ZStack(alignment: .bottom) {
+            Image("Wave")
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 400, height: 270)
+                .offset(x: 0, y: 120)
+            
             Image("Plant_Fill")
                 .resizable()
                 .interpolation(.none)
                 .renderingMode(.template)
-                .foregroundStyle(Color.green.opacity(0.35))
+                .foregroundStyle(clayPotColor)
                 .scaledToFit()
-                .frame(width: 74, height: 74)
-                .offset(x: -104, y: 6)
+                .frame(width: 235, height: 235)
+                .offset(x: -132, y: -35)
 
             Image(plantLineAssetName)
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
-                .frame(width: 74, height: 74)
-                .offset(x: -104, y: 6)
+                .frame(width: 300, height: 300)
+                .offset(x: -132, y: 6)
+
+            Image("Yarn_Fill")
+                .resizable()
+                .interpolation(.none)
+                .renderingMode(.template)
+                .foregroundStyle(yarnRedColor)
+                .scaledToFit()
+                .frame(width: 300, height: 300)
+                .offset(x: -105, y: 80)
+
+            Image("Yarn")
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .frame(width: 300, height: 300)
+                .offset(x: -105, y: 80)
 
             Image("Couch_Fill")
                 .resizable()
@@ -156,15 +184,16 @@ struct HomeView: View {
                 .renderingMode(.template)
                 .foregroundStyle(couchFillColor)
                 .scaledToFit()
-                .frame(width: 214, height: 118)
-                .offset(x: 14, y: 14)
+                .frame(width: 270, height: 270)
+                .offset(x: 160, y: 0)
 
             Image("Couch")
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
-                .frame(width: 214, height: 118)
-                .offset(x: 14, y: 14)
+                .frame(width: 270, height: 270)
+                .offset(x: 160, y: 0)
+            
         }
     }
 
@@ -189,13 +218,6 @@ struct HomeView: View {
         } else if appState.financeCatAgentStatus == .generating {
             catBubble {
                 Label("Your cat is reading the receipts...", systemImage: "sparkles")
-                    .font(DoodleFont.body)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else if let message = appState.financeCatAgentStatus.message {
-            catBubble {
-                Text(message)
                     .font(DoodleFont.body)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -251,9 +273,9 @@ struct HomeView: View {
                 spendMetric(title: "Month", cents: buddy.spentMonthCents)
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(Color(.systemBackground), in: RoundedRectangle(cornerRadius: 8))
+        .frame(maxWidth: .infinity, alignment: .leading)
+//        .background(buddyTextPanelColor, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private func spendMetric(title: String, cents: Int) -> some View {
@@ -269,7 +291,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(10)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 8))
+        .background(buddyTextPanelInnerColor, in: RoundedRectangle(cornerRadius: 8))
     }
 
     private var controls: some View {
@@ -336,6 +358,22 @@ struct HomeView: View {
 
     private var homeBackgroundColor: Color {
         Color("HomeSceneDominant")
+    }
+
+    private var clayPotColor: Color {
+        Color(red: 0.76, green: 0.42, blue: 0.30)
+    }
+
+    private var yarnRedColor: Color {
+        Color(red: 0.78, green: 0.22, blue: 0.24)
+    }
+
+    private var buddyTextPanelColor: Color {
+        Color(red: 0.773, green: 0.733, blue: 0.965)
+    }
+
+    private var buddyTextPanelInnerColor: Color {
+        Color(red: 0.86, green: 0.83, blue: 0.98)
     }
 
     private var refreshButtonColor: Color {
