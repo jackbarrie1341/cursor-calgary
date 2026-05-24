@@ -11,6 +11,7 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
         let catFillBrightness: Double
         let hatAssetKey: String?
         let hatSymbolName: String?
+        var purchaseAmountCents: Int? = nil
     }
 
     let name: String
@@ -25,7 +26,8 @@ enum BuddyLiveActivityController {
         frameIndex: Int,
         catFillHue: Double,
         catFillSaturation: Double,
-        catFillBrightness: Double
+        catFillBrightness: Double,
+        purchaseAmountCents: Int? = nil
     ) async {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
@@ -37,7 +39,8 @@ enum BuddyLiveActivityController {
             catFillSaturation: catFillSaturation,
             catFillBrightness: catFillBrightness,
             hatAssetKey: equippedHat?.assetKey,
-            hatSymbolName: equippedHat?.symbolName
+            hatSymbolName: equippedHat?.symbolName,
+            purchaseAmountCents: purchaseAmountCents
         )
         let content = ActivityContent(
             state: state,
