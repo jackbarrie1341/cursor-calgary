@@ -59,6 +59,11 @@ final class AppState: ObservableObject {
             UserDefaults.standard.set(isCouchAccentColor, forKey: "room_couch_accent_color")
         }
     }
+    @Published var financeCatVerdict: StoredBuddyVerdict? = FinanceCatVerdictStore.load()
+    @Published var financeCatAgentStatus: FinanceCatAgentStatus = .idle
+    /// The headline as it streams in token-by-token. Non-nil only while a
+    /// verdict is actively being written.
+    @Published var financeCatStreamingHeadline: String?
     @Published var catFillHue: Double = UserDefaults.standard.object(forKey: "cat_fill_hue") as? Double ?? 0.04 {
         didSet {
             UserDefaults.standard.set(catFillHue, forKey: "cat_fill_hue")
@@ -261,6 +266,13 @@ final class AppState: ObservableObject {
             self.ownedHats = []
             self.equippedHatId = nil
             self.selectedHatId = nil
+            self.spending = nil
+            self.financeCatTask?.cancel()
+            self.financeCatTask = nil
+            self.financeCatVerdict = nil
+            self.financeCatStreamingHeadline = nil
+            self.financeCatAgentStatus = .idle
+            FinanceCatVerdictStore.clear()
         }
     }
 

@@ -314,8 +314,15 @@ struct HomeView: View {
         return min(Double(buddy.spentTodayCents) / Double(buddy.dailyAllowanceCents), 1.0)
     }
 
+    private var displayedMood: BuddyMood {
+        if let overridePercent = appState.devBudgetUtilOverridePercent {
+            return .forBudgetUsageRatio(overridePercent / 100)
+        }
+        return appState.financeCatVerdict?.verdict.mood.buddyMood ?? buddy.mood
+    }
+
     private var moodColor: Color {
-        switch effectiveMood {
+        switch displayedMood {
         case .happy: .green
         case .nervous: .yellow
         case .hungry: .orange
@@ -324,10 +331,7 @@ struct HomeView: View {
     }
 
     private var effectiveMood: BuddyMood {
-        guard let overridePercent = appState.devBudgetUtilOverridePercent else {
-            return buddy.mood
-        }
-        return .forBudgetUsageRatio(overridePercent / 100)
+        displayedMood
     }
 
     private var catFillColor: Color {
@@ -505,6 +509,12 @@ private struct SettingsView: View {
                                 .font(DoodleFont.caption)
                                 .foregroundStyle(.red)
                         }
+                    }
+
+                    Button {
+                        appState.retryFinanceCatVerdict()
+                    } label: {
+                        Label("Retry cat analysis", systemImage: "sparkles")
                     }
                 } header: {
                     Text("Developer")
