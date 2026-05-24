@@ -13,8 +13,8 @@ export function moodForSpend(spentTodayCents: number, dailyAllowanceCents: numbe
 
   const ratio = spentTodayCents / dailyAllowanceCents;
   if (ratio < 0.5) return "sick";
-  if (ratio <= 0.85) return "happy";
-  if (ratio <= 1.1) return "nervous";
+  if (ratio < 0.8) return "happy";
+  if (ratio < 1) return "nervous";
   return "hungry";
 }
 

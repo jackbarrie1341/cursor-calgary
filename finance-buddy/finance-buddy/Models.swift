@@ -28,8 +28,8 @@ enum BuddyMood: String, Codable, CaseIterable {
 extension BuddyMood {
     static func forBudgetUsageRatio(_ ratio: Double) -> BuddyMood {
         if ratio < 0.5 { return .sick }      // Money Spread
-        if ratio <= 0.85 { return .happy }   // Cheesing
-        if ratio <= 1.1 { return .nervous }  // Worried
+        if ratio < 0.8 { return .happy }     // Cheesing
+        if ratio < 1.0 { return .nervous }   // Worried
         return .hungry                       // Broke
     }
 }

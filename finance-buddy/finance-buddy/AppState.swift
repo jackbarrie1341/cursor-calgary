@@ -11,6 +11,7 @@ final class AppState: ObservableObject {
                     self.applyCatColor(from: buddy)
                     self.saveWidgetSnapshot(for: buddy)
                     self.applyHats(from: buddy)
+                    self.updateBuddyLiveActivityIfNeeded()
                 }
             } else {
                 Task { @MainActor in
@@ -18,6 +19,7 @@ final class AppState: ObservableObject {
                     self.ownedHats = []
                     self.equippedHatId = nil
                     self.selectedHatId = nil
+                    await self.endBuddyLiveActivity()
                 }
             }
         }
@@ -40,6 +42,18 @@ final class AppState: ObservableObject {
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?
+    @Published var isBuddyLiveActivityEnabled: Bool = UserDefaults.standard.object(forKey: "buddy_live_activity_enabled") as? Bool ?? false {
+        didSet {
+            UserDefaults.standard.set(isBuddyLiveActivityEnabled, forKey: "buddy_live_activity_enabled")
+            Task { @MainActor in
+                if isBuddyLiveActivityEnabled {
+                    self.updateBuddyLiveActivityIfNeeded()
+                } else {
+                    await self.endBuddyLiveActivity()
+                }
+            }
+        }
+    }
     @Published var devBudgetUtilOverridePercent: Double? = UserDefaults.standard.object(forKey: "dev_budget_util_override_percent") as? Double {
         didSet {
             if let devBudgetUtilOverridePercent {
@@ -64,6 +78,7 @@ final class AppState: ObservableObject {
             UserDefaults.standard.set(catFillHue, forKey: "cat_fill_hue")
             if let buddy {
                 saveWidgetSnapshot(for: buddy)
+                updateBuddyLiveActivityIfNeeded()
             }
             persistCatColorIfNeeded()
         }
@@ -73,6 +88,7 @@ final class AppState: ObservableObject {
             UserDefaults.standard.set(catFillSaturation, forKey: "cat_fill_saturation")
             if let buddy {
                 saveWidgetSnapshot(for: buddy)
+                updateBuddyLiveActivityIfNeeded()
             }
             persistCatColorIfNeeded()
         }
@@ -82,6 +98,7 @@ final class AppState: ObservableObject {
             UserDefaults.standard.set(catFillBrightness, forKey: "cat_fill_brightness")
             if let buddy {
                 saveWidgetSnapshot(for: buddy)
+                updateBuddyLiveActivityIfNeeded()
             }
             persistCatColorIfNeeded()
         }
@@ -268,6 +285,7 @@ final class AppState: ObservableObject {
             self.financeCatStreamingHeadline = nil
             self.financeCatAgentStatus = .idle
             FinanceCatVerdictStore.clear()
+            await self.endBuddyLiveActivity()
         }
     }
 
@@ -493,6 +511,26 @@ final class AppState: ObservableObject {
         )
     }
 
+    private func updateBuddyLiveActivityIfNeeded() {
+        guard isBuddyLiveActivityEnabled, let buddy else { return }
+        guard #available(iOS 16.2, *) else { return }
+
+        Task {
+            await BuddyLiveActivityController.startOrUpdate(
+                buddy: buddy,
+                frameIndex: 1,
+                catFillHue: catFillHue,
+                catFillSaturation: catFillSaturation,
+                catFillBrightness: catFillBrightness
+            )
+        }
+    }
+
+    private func endBuddyLiveActivity() async {
+        guard #available(iOS 16.2, *) else { return }
+        await BuddyLiveActivityController.endAll()
+    }
+
     private func applyCatColor(from buddy: BuddyState) {
         guard
             let hue = buddy.catFillHue,
@@ -567,19 +605,22 @@ final class AppState: ObservableObject {
     }
 
     private func applyHats(_ response: HatsResponse) {
-        ownedHats = response.ownedHats
-        equippedHatId = response.equippedHatId
+        let visibleHats = response.ownedHats.filter { hat in
+            hat.assetKey != "icon_hat" && hat.slug != "icon_hat"
+        }
+        ownedHats = visibleHats
+        equippedHatId = visibleHats.contains(where: { $0.id == response.equippedHatId }) ? response.equippedHatId : nil
 
         if
             let selectedHatId,
-            !response.ownedHats.contains(where: { $0.id == selectedHatId })
+            !visibleHats.contains(where: { $0.id == selectedHatId })
         {
-            self.selectedHatId = response.equippedHatId
+            self.selectedHatId = equippedHatId
             return
         }
 
         if self.selectedHatId == nil {
-            self.selectedHatId = response.equippedHatId ?? response.ownedHats.first?.id
+            self.selectedHatId = equippedHatId ?? visibleHats.first?.id
         }
     }
 }
