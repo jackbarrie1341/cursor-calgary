@@ -4,25 +4,42 @@ struct ContentView: View {
     @StateObject private var appState = AppState()
     @Environment(\.scenePhase) private var scenePhase
 
+    private var isBooting: Bool {
+        appState.isLoading && appState.buddy == nil
+    }
+
     var body: some View {
-        NavigationStack {
-            Group {
-                if appState.isLoading && appState.buddy == nil {
-                    ProgressView()
-                } else if !appState.isAuthenticated {
-                    AuthView()
-                        .environmentObject(appState)
-                } else if appState.buddy?.hasOnboarded != true {
-                    OnboardingView()
-                        .environmentObject(appState)
-                } else if appState.buddy?.isLinked != true {
-                    BankOnboardingView()
-                        .environmentObject(appState)
-                } else {
-                    MainTabView()
-                        .environmentObject(appState)
-                }
+        ZStack {
+            NavigationStack {
+                contentBody
             }
+            .opacity(isBooting ? 0 : 1)
+        }
+        .animation(.easeOut(duration: 0.4), value: isBooting)
+        .onChange(of: isBooting) { _, newValue in
+            if !newValue {
+                appState.didCompleteInitialBoot = true
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var contentBody: some View {
+        Group {
+            if !appState.isAuthenticated {
+                AuthView()
+                    .environmentObject(appState)
+            } else if appState.buddy?.hasOnboarded != true {
+                OnboardingView()
+                    .environmentObject(appState)
+            } else if appState.buddy?.isLinked != true {
+                BankOnboardingView()
+                    .environmentObject(appState)
+            } else {
+                MainTabView()
+                    .environmentObject(appState)
+            }
+        }
             .font(DoodleFont.body)
             .doodleTracking()
             .toolbar {
@@ -69,7 +86,6 @@ struct ContentView: View {
                     .ignoresSafeArea()
                 }
             }
-        }
     }
 }
 
