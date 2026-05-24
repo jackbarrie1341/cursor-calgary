@@ -32,6 +32,11 @@ final class AppState: ObservableObject {
     @Published var friends: [FriendBuddy] = []
     @Published var friendSearchResults: [FriendSearchResult] = []
     @Published var spending: SpendingResponse?
+    @Published var financeCatVerdict: StoredBuddyVerdict? = FinanceCatVerdictStore.load()
+    @Published var financeCatAgentStatus: FinanceCatAgentStatus = .idle
+    /// The headline as it streams in token-by-token. Non-nil only while a
+    /// verdict is actively being written.
+    @Published var financeCatStreamingHeadline: String?
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?
@@ -210,8 +215,9 @@ final class AppState: ObservableObject {
 
     func loadHats() async {
         do {
-            try await restoreSession()
-            let response = try await backend.getHats()
+            let response = try await withFreshSession {
+                try await self.backend.getHats()
+            }
             applyHats(response)
         } catch {
             errorMessage = error.localizedDescription
@@ -226,8 +232,9 @@ final class AppState: ObservableObject {
     func toggleEquipSelectedHat() async {
         let targetHatId = selectedHatId == equippedHatId ? nil : selectedHatId
         do {
-            try await restoreSession()
-            let response = try await backend.updateEquippedHat(hatId: targetHatId)
+            let response = try await withFreshSession {
+                try await self.backend.updateEquippedHat(hatId: targetHatId)
+            }
             applyHats(response)
         } catch {
             errorMessage = error.localizedDescription
@@ -249,6 +256,13 @@ final class AppState: ObservableObject {
             self.currentUsername = ""
             self.friends = []
             self.friendSearchResults = []
+            self.spending = nil
+            self.financeCatTask?.cancel()
+            self.financeCatTask = nil
+            self.financeCatVerdict = nil
+            self.financeCatStreamingHeadline = nil
+            self.financeCatAgentStatus = .idle
+            FinanceCatVerdictStore.clear()
             self.ownedHats = []
             self.equippedHatId = nil
             self.selectedHatId = nil
