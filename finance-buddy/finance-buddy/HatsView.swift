@@ -80,9 +80,9 @@ struct HatsView: View {
                 roomBackgroundDecor
 
                 BuddyImageView(
-                    mood: buddy.mood,
+                    mood: effectiveMood,
                     overrideAssetName: nil,
-                    fallbackSymbolName: buddy.mood.symbolName,
+                    fallbackSymbolName: effectiveMood.symbolName,
                     fallbackColor: moodColor,
                     hatAssetKey: previewHat?.assetKey,
                     hatSymbolName: previewHat?.symbolName,
@@ -175,12 +175,19 @@ struct HatsView: View {
     }
 
     private var moodColor: Color {
-        switch buddy.mood {
+        switch effectiveMood {
         case .happy: .green
         case .nervous: .yellow
         case .hungry: .orange
         case .sick: .red
         }
+    }
+
+    private var effectiveMood: BuddyMood {
+        if let overridePercent = appState.devBudgetUtilOverridePercent {
+            return .forBudgetUsageRatio(overridePercent / 100)
+        }
+        return buddy.mood
     }
 
     private var roomBackgroundDecor: some View {

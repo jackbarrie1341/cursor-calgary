@@ -79,7 +79,7 @@ struct HomeView: View {
                     .font(DoodleFont.largeTitle)
                     .doodleTracking(-1.2)
 
-                Text(buddy.mood.title)
+                Text(effectiveMood.title)
                     .font(DoodleFont.title3)
                     .doodleTracking(-0.8)
                     .foregroundStyle(moodColor)
@@ -118,9 +118,9 @@ struct HomeView: View {
             roomBackgroundDecor
 
             BuddyImageView(
-                mood: buddy.mood,
+                mood: effectiveMood,
                 overrideAssetName: nil,
-                fallbackSymbolName: buddy.mood.symbolName,
+                fallbackSymbolName: effectiveMood.symbolName,
                 fallbackColor: moodColor,
                 hatAssetKey: equippedHat?.assetKey,
                 hatSymbolName: equippedHat?.symbolName,
@@ -315,12 +315,19 @@ struct HomeView: View {
     }
 
     private var moodColor: Color {
-        switch buddy.mood {
+        switch effectiveMood {
         case .happy: .green
         case .nervous: .yellow
         case .hungry: .orange
         case .sick: .red
         }
+    }
+
+    private var effectiveMood: BuddyMood {
+        guard let overridePercent = appState.devBudgetUtilOverridePercent else {
+            return buddy.mood
+        }
+        return .forBudgetUsageRatio(overridePercent / 100)
     }
 
     private var catFillColor: Color {
@@ -370,6 +377,8 @@ private struct Triangle: Shape {
 private struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    @State private var budgetUtilOverrideInput = ""
+    @State private var budgetUtilOverrideError: String?
 
     var body: some View {
         NavigationStack {
@@ -401,10 +410,10 @@ private struct SettingsView: View {
                         }
 
                         BuddyImageView(
-                            mood: .happy,
-                            overrideAssetName: "Cat_Cheesing",
-                            fallbackSymbolName: BuddyMood.happy.symbolName,
-                            fallbackColor: .green,
+                            mood: effectiveMood,
+                            overrideAssetName: nil,
+                            fallbackSymbolName: effectiveMood.symbolName,
+                            fallbackColor: moodColor,
                             hatAssetKey: selectedHat?.assetKey,
                             hatSymbolName: selectedHat?.symbolName,
                             fillColor: catFillColor,
@@ -464,6 +473,44 @@ private struct SettingsView: View {
                 }
 
                 Section {
+                    VStack(alignment: .leading, spacing: 10) {
+                        TextField("Budget usage % (e.g. 72.5)", text: $budgetUtilOverrideInput)
+                            .keyboardType(.decimalPad)
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled()
+
+                        HStack(spacing: 8) {
+                            Button("Apply override") {
+                                applyBudgetUtilOverride()
+                            }
+                            .buttonStyle(.borderedProminent)
+
+                            Button("Clear override") {
+                                appState.devBudgetUtilOverridePercent = nil
+                                budgetUtilOverrideInput = ""
+                                budgetUtilOverrideError = nil
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(appState.devBudgetUtilOverridePercent == nil)
+                        }
+
+                        if let overridePercent = appState.devBudgetUtilOverridePercent {
+                            Text("Active override: \(overridePercent.formatted(.number.precision(.fractionLength(0...2))))% (\(effectiveMood.title))")
+                                .font(DoodleFont.caption)
+                                .foregroundStyle(.secondary)
+                        }
+
+                        if let budgetUtilOverrideError {
+                            Text(budgetUtilOverrideError)
+                                .font(DoodleFont.caption)
+                                .foregroundStyle(.red)
+                        }
+                    }
+                } header: {
+                    Text("Developer")
+                }
+
+                Section {
                     Button(role: .destructive) {
                         dismiss()
                         Task {
@@ -487,6 +534,7 @@ private struct SettingsView: View {
         .presentationDetents([.medium])
         .task {
             await appState.loadHats()
+            syncBudgetUtilOverrideInputFromState()
         }
     }
 
@@ -502,6 +550,22 @@ private struct SettingsView: View {
         appState.isCouchAccentColor
             ? Color(red: 0.95, green: 0.62, blue: 0.66)
             : Color(red: 0.55, green: 0.70, blue: 0.86)
+    }
+
+    private var effectiveMood: BuddyMood {
+        if let overridePercent = appState.devBudgetUtilOverridePercent {
+            return .forBudgetUsageRatio(overridePercent / 100)
+        }
+        return appState.buddy?.mood ?? .happy
+    }
+
+    private var moodColor: Color {
+        switch effectiveMood {
+        case .happy: .green
+        case .nervous: .yellow
+        case .hungry: .orange
+        case .sick: .red
+        }
     }
 
     private var hatSelectionBinding: Binding<String?> {
@@ -531,6 +595,30 @@ private struct SettingsView: View {
             get: { 1 - appState.catFillBrightness },
             set: { appState.catFillBrightness = 1 - $0 }
         )
+    }
+
+    private func syncBudgetUtilOverrideInputFromState() {
+        if let overridePercent = appState.devBudgetUtilOverridePercent {
+            budgetUtilOverrideInput = overridePercent.formatted(.number.precision(.fractionLength(0...2)))
+        } else {
+            budgetUtilOverrideInput = ""
+        }
+    }
+
+    private func applyBudgetUtilOverride() {
+        let normalized = budgetUtilOverrideInput
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+        guard !normalized.isEmpty else {
+            budgetUtilOverrideError = "Enter a budget utilization percentage first."
+            return
+        }
+        guard let value = Double(normalized), value >= 0 else {
+            budgetUtilOverrideError = "Please enter a valid non-negative number."
+            return
+        }
+        appState.devBudgetUtilOverridePercent = value
+        budgetUtilOverrideError = nil
     }
 
     private func colorSlider(_ title: String, value: Binding<Double>) -> some View {

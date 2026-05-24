@@ -25,6 +25,15 @@ enum BuddyMood: String, Codable, CaseIterable {
     }
 }
 
+extension BuddyMood {
+    static func forBudgetUsageRatio(_ ratio: Double) -> BuddyMood {
+        if ratio < 0.5 { return .sick }      // Money Spread
+        if ratio <= 0.85 { return .happy }   // Cheesing
+        if ratio <= 1.1 { return .nervous }  // Worried
+        return .hungry                       // Broke
+    }
+}
+
 struct BuddyState: Codable, Equatable {
     let mood: BuddyMood
     let spentTodayCents: Int
