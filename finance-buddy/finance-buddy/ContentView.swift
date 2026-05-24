@@ -4,13 +4,8 @@ struct ContentView: View {
     @StateObject private var appState = AppState()
     @Environment(\.scenePhase) private var scenePhase
 
-    // TESTING: force the loading screen to stay visible for this long.
-    // Set to 0 (or remove) to disable.
-    private let minimumLoadingDuration: TimeInterval = 10
-    @State private var minimumLoadingComplete = false
-
     private var isBooting: Bool {
-        !minimumLoadingComplete || (appState.isLoading && appState.buddy == nil)
+        appState.isLoading && appState.buddy == nil
     }
 
     var body: some View {
@@ -21,10 +16,6 @@ struct ContentView: View {
             .opacity(isBooting ? 0 : 1)
         }
         .animation(.easeOut(duration: 0.4), value: isBooting)
-        .task {
-            try? await Task.sleep(nanoseconds: UInt64(minimumLoadingDuration * 1_000_000_000))
-            minimumLoadingComplete = true
-        }
         .onChange(of: isBooting) { _, newValue in
             if !newValue {
                 appState.didCompleteInitialBoot = true
