@@ -5,10 +5,10 @@ describe("buddy engine", () => {
   it("maps spend ratio to moods", () => {
     expect(moodForSpend(499, 1000)).toBe("sick");
     expect(moodForSpend(500, 1000)).toBe("happy");
-    expect(moodForSpend(850, 1000)).toBe("happy");
-    expect(moodForSpend(851, 1000)).toBe("nervous");
-    expect(moodForSpend(1100, 1000)).toBe("nervous");
-    expect(moodForSpend(1101, 1000)).toBe("hungry");
+    expect(moodForSpend(799, 1000)).toBe("happy");
+    expect(moodForSpend(800, 1000)).toBe("nervous");
+    expect(moodForSpend(999, 1000)).toBe("nervous");
+    expect(moodForSpend(1000, 1000)).toBe("hungry");
   });
 
   it("calculates daily allowance for the active month", () => {

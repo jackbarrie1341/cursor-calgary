@@ -143,7 +143,7 @@ private extension BuddyWidgetSnapshot {
     var moodTitle: String {
         switch mood {
         case "nervous": "Nervous"
-        case "hungry": "Hungry"
+        case "hungry": "Broke"
         case "sick": "Sick"
         default: "Happy"
         }
@@ -152,7 +152,7 @@ private extension BuddyWidgetSnapshot {
     var lineAssetName: String {
         switch mood {
         case "nervous": "Cat_Worried"
-        case "hungry": "Cat_Tear_Pool"
+        case "hungry": "1_Cat_Broke"
         case "sick": "Cat_Money_Spread_1"
         default: "1_Cat_Cheesing"
         }
@@ -162,6 +162,7 @@ private extension BuddyWidgetSnapshot {
         switch mood {
         case "sick": "1_Fill_Cat_Money_Spread"
         case "happy": "1_Fill_Cat_Cheesing"
+        case "hungry": "1_2_Fill_Cat_Broke"
         default: nil
         }
     }

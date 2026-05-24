@@ -453,6 +453,14 @@ private struct SettingsView: View {
                 }
 
                 Section {
+                    Toggle("Show buddy in Dynamic Island", isOn: $appState.isBuddyLiveActivityEnabled)
+                } header: {
+                    Text("Dynamic Island")
+                } footer: {
+                    Text("Shows the current budget-based buddy status when Live Activities are available.")
+                }
+
+                Section {
                     VStack(alignment: .leading, spacing: 12) {
                         Picker("Preview hat", selection: hatSelectionBinding) {
                             Text("None").tag(Optional<String>.none)
