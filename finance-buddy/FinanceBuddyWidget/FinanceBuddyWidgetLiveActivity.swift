@@ -10,6 +10,8 @@ import WidgetKit
 import SwiftUI
 
 private let widgetBackgroundColor = Color(red: 0.976, green: 0.961, blue: 0.925)
+private let liveActivityTextColor = Color(red: 0.05, green: 0.05, blue: 0.04)
+private let liveActivitySecondaryTextColor = Color(red: 0.42, green: 0.41, blue: 0.38)
 
 struct FinanceBuddyWidgetAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
@@ -29,16 +31,43 @@ struct FinanceBuddyWidgetAttributes: ActivityAttributes {
 struct FinanceBuddyWidgetLiveActivity: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: FinanceBuddyWidgetAttributes.self) { context in
-            LiveActivityBuddyImageView(state: context.state)
-                .frame(width: 72, height: 72)
-                .frame(maxWidth: .infinity, minHeight: 96)
+            LiveActivityLockScreenView(
+                name: context.attributes.name,
+                state: context.state
+            )
                 .activityBackgroundTint(widgetBackgroundColor)
                 .activitySystemActionForegroundColor(Color.primary)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.center) {
+                DynamicIslandExpandedRegion(.leading) {
                     LiveActivityBuddyImageView(state: context.state)
-                        .frame(width: 64, height: 64)
+                        .frame(width: 54, height: 54)
+                }
+                DynamicIslandExpandedRegion(.center) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(context.attributes.name)
+                            .font(.system(size: 16, weight: .bold, design: .rounded))
+                            .foregroundStyle(liveActivityTextColor)
+                            .lineLimit(1)
+
+                        Text(context.state.moodTitle)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(context.state.moodColor)
+                            .lineLimit(1)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                DynamicIslandExpandedRegion(.trailing) {
+                    Text(context.state.percentText)
+                        .font(.system(size: 17, weight: .bold, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(context.state.moodColor)
+                        .lineLimit(1)
+                }
+                DynamicIslandExpandedRegion(.bottom) {
+                    LiveActivityProgressBar(state: context.state)
+                        .frame(height: 8)
+                        .padding(.horizontal, 8)
                 }
             } compactLeading: {
                 LiveActivityBuddyImageView(state: context.state)
@@ -59,49 +88,146 @@ struct FinanceBuddyWidgetLiveActivity: Widget {
     }
 }
 
+private struct LiveActivityLockScreenView: View {
+    let name: String
+    let state: FinanceBuddyWidgetAttributes.ContentState
+
+    var body: some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(state.moodColor.opacity(0.14))
+                    .overlay(
+                        Circle()
+                            .stroke(state.moodColor.opacity(0.26), lineWidth: 1)
+                    )
+
+                LiveActivityBuddyImageView(state: state)
+                    .padding(7)
+            }
+            .frame(width: 82, height: 82)
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(name)
+                            .font(.system(size: 22, weight: .bold, design: .rounded))
+                            .foregroundStyle(liveActivityTextColor)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+
+                        Text(state.moodTitle)
+                            .font(.system(size: 14, weight: .semibold, design: .rounded))
+                            .foregroundStyle(state.moodColor)
+                            .lineLimit(1)
+                    }
+
+                    Spacer(minLength: 8)
+
+                    Text(state.percentText)
+                        .font(.system(size: 22, weight: .black, design: .rounded))
+                        .monospacedDigit()
+                        .foregroundStyle(state.moodColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Text("Daily pace")
+                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .foregroundStyle(liveActivitySecondaryTextColor)
+
+                        Text(state.paceLabel)
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
+                            .foregroundStyle(liveActivityTextColor.opacity(0.78))
+                            .lineLimit(1)
+                    }
+
+                    LiveActivityProgressBar(state: state)
+                        .frame(height: 12)
+                }
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 16)
+        .frame(maxWidth: .infinity, minHeight: 118, alignment: .leading)
+    }
+}
+
+private struct LiveActivityProgressBar: View {
+    let state: FinanceBuddyWidgetAttributes.ContentState
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = geometry.size.width
+            let fillWidth = max(8, width * state.progressValue)
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .fill(Color.primary.opacity(0.10))
+
+                Capsule()
+                    .fill(state.moodColor)
+                    .frame(width: fillWidth)
+
+                ZStack(alignment: .leading) {
+                    ForEach([0.5, 0.8, 1.0], id: \.self) { marker in
+                        Rectangle()
+                            .fill(Color.white.opacity(0.72))
+                            .frame(width: 1.5)
+                            .padding(.vertical, 2)
+                            .offset(x: max(0, min(width - 1.5, width * marker)))
+                    }
+                }
+            }
+            .clipShape(Capsule())
+        }
+        .accessibilityLabel("Daily budget pace \(state.percentText)")
+    }
+}
+
 private struct LiveActivityBuddyImageView: View {
     let state: FinanceBuddyWidgetAttributes.ContentState
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 1.0)) { timeline in
-            let frameIndex = frameIndex(for: timeline.date)
+        ZStack {
+            if let fillAssetName = state.fillAssetName(frameIndex: state.frameIndex),
+               UIImage(named: fillAssetName) != nil {
+                Image(fillAssetName)
+                    .resizable()
+                    .interpolation(.none)
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .foregroundStyle(state.catFillColor)
+                    .contentTransition(.identity)
+            }
 
-            ZStack {
-                if let fillAssetName = state.fillAssetName(frameIndex: frameIndex),
-                   UIImage(named: fillAssetName) != nil {
-                    Image(fillAssetName)
-                        .resizable()
-                        .interpolation(.none)
-                        .renderingMode(.template)
-                        .scaledToFit()
-                        .foregroundStyle(state.catFillColor)
-                }
+            Image(state.lineAssetName(frameIndex: state.frameIndex))
+                .resizable()
+                .interpolation(.none)
+                .scaledToFit()
+                .contentTransition(.identity)
 
-                Image(state.lineAssetName(frameIndex: frameIndex))
+            if let hatAssetName = state.hatAssetName {
+                Image(hatAssetName)
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
-
-                if let hatAssetName = state.hatAssetName {
-                    Image(hatAssetName)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .rotationEffect(state.hatRotation)
-                        .offset(state.hatOffset)
-                } else if let hatSymbolName = state.hatSymbolName {
-                    Image(systemName: hatSymbolName)
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
-                        .offset(y: -9)
-                }
+                    .rotationEffect(state.hatRotation)
+                    .offset(state.hatOffset)
+            } else if let hatSymbolName = state.hatSymbolName {
+                Image(systemName: hatSymbolName)
+                    .font(.system(size: 9, weight: .bold))
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.2), radius: 1, y: 0.5)
+                    .offset(y: -9)
             }
         }
-    }
-
-    private func frameIndex(for date: Date) -> Int {
-        Int(date.timeIntervalSinceReferenceDate) % 2 == 0 ? 1 : 2
+        .transaction { transaction in
+            transaction.animation = nil
+            transaction.disablesAnimations = true
+        }
     }
 }
 
@@ -132,8 +258,8 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
 
     var moodColor: Color {
         switch mood {
-        case "nervous": .yellow
-        case "hungry": .red
+        case "nervous": Color(red: 0.92, green: 0.58, blue: 0.20)
+        case "hungry": Color(red: 0.90, green: 0.24, blue: 0.20)
         case "sick": Color(red: 0.05, green: 0.62, blue: 0.30)
         default: Color(red: 0.30, green: 0.72, blue: 0.38)
         }
@@ -149,6 +275,28 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
 
     var percentText: String {
         "\(dailyBudgetSpentPercent)%"
+    }
+
+    var progressValue: Double {
+        min(max(Double(dailyBudgetSpentPercent) / 100.0, 0), 1)
+    }
+
+    var moodTitle: String {
+        switch mood {
+        case "nervous": "Worried"
+        case "hungry": "Broke"
+        case "sick": "Flexing"
+        default: "Cheesing"
+        }
+    }
+
+    var paceLabel: String {
+        switch dailyBudgetSpentPercent {
+        case ..<50: "plenty of room"
+        case 50..<80: "steady"
+        case 80..<100: "getting close"
+        default: "over pace"
+        }
     }
 
     var hatAssetName: String? {
@@ -201,7 +349,7 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
         FinanceBuddyWidgetAttributes.ContentState(
             mood: "happy",
             frameIndex: 2,
-            dailyBudgetSpentPercent: 43,
+            dailyBudgetSpentPercent: 86,
             catFillHue: 0.04,
             catFillSaturation: 0.48,
             catFillBrightness: 1.0,

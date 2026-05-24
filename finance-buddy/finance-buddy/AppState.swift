@@ -23,6 +23,7 @@ final class AppState: ObservableObject {
                     self.ownedHats = []
                     self.equippedHatId = nil
                     self.selectedHatId = nil
+                    self.stopBuddyLiveActivityAnimation()
                     await self.endBuddyLiveActivity()
                 }
             }
@@ -61,6 +62,7 @@ final class AppState: ObservableObject {
                 if isBuddyLiveActivityEnabled {
                     self.updateBuddyLiveActivityIfNeeded()
                 } else {
+                    self.stopBuddyLiveActivityAnimation()
                     await self.endBuddyLiveActivity()
                 }
             }
@@ -133,6 +135,8 @@ final class AppState: ObservableObject {
     private var purchaseReactionTask: Task<Void, Never>?
     private var lastKnownSpentTodayCents: Int?
     @Published private(set) var pendingPurchaseAmountCents: Int?
+    private var liveActivityAnimationTask: Task<Void, Never>?
+    private var liveActivityFrameIndex = 1
     private var isApplyingRemoteCatColor = false
 
     var backend: BackendClient {
@@ -612,13 +616,14 @@ final class AppState: ObservableObject {
     private func updateBuddyLiveActivityIfNeeded() {
         guard isBuddyLiveActivityEnabled, let buddy else { return }
         guard #available(iOS 16.2, *) else { return }
+        startBuddyLiveActivityAnimationIfNeeded()
 
         Task {
             await BuddyLiveActivityController.startOrUpdate(
                 buddy: buddy,
                 mood: displayMood(for: buddy),
                 equippedHat: equippedHat,
-                frameIndex: 1,
+                frameIndex: liveActivityFrameIndex,
                 catFillHue: catFillHue,
                 catFillSaturation: catFillSaturation,
                 catFillBrightness: catFillBrightness
@@ -668,6 +673,27 @@ final class AppState: ObservableObject {
     private func endBuddyLiveActivity() async {
         guard #available(iOS 16.2, *) else { return }
         await BuddyLiveActivityController.endAll()
+    }
+
+    private func startBuddyLiveActivityAnimationIfNeeded() {
+        guard liveActivityAnimationTask == nil else { return }
+        guard isBuddyLiveActivityEnabled, buddy != nil else { return }
+        guard #available(iOS 16.2, *) else { return }
+
+        liveActivityAnimationTask = Task { @MainActor in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled, isBuddyLiveActivityEnabled, buddy != nil else { continue }
+                liveActivityFrameIndex = liveActivityFrameIndex == 1 ? 2 : 1
+                updateBuddyLiveActivityIfNeeded()
+            }
+        }
+    }
+
+    private func stopBuddyLiveActivityAnimation() {
+        liveActivityAnimationTask?.cancel()
+        liveActivityAnimationTask = nil
+        liveActivityFrameIndex = 1
     }
 
     func displayMood(for buddy: BuddyState) -> BuddyMood {
