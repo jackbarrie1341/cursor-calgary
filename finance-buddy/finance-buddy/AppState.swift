@@ -7,10 +7,18 @@ final class AppState: ObservableObject {
     @Published var buddy: BuddyState? {
         didSet {
             if let buddy {
-                applyCatColor(from: buddy)
-                saveWidgetSnapshot(for: buddy)
+                Task { @MainActor in
+                    self.applyCatColor(from: buddy)
+                    self.saveWidgetSnapshot(for: buddy)
+                    self.applyHats(from: buddy)
+                }
             } else {
-                BuddyWidgetSnapshotStore.clear()
+                Task { @MainActor in
+                    BuddyWidgetSnapshotStore.clear()
+                    self.ownedHats = []
+                    self.equippedHatId = nil
+                    self.selectedHatId = nil
+                }
             }
         }
     }
@@ -30,6 +38,19 @@ final class AppState: ObservableObject {
     /// verdict is actively being written.
     @Published var financeCatStreamingHeadline: String?
     @Published var debugBuddyAssetName: String?
+    @Published var ownedHats: [HatItem] = []
+    @Published var equippedHatId: String?
+    @Published var selectedHatId: String?
+    @Published var isPlantAlive: Bool = UserDefaults.standard.object(forKey: "room_plant_alive") as? Bool ?? true {
+        didSet {
+            UserDefaults.standard.set(isPlantAlive, forKey: "room_plant_alive")
+        }
+    }
+    @Published var isCouchAccentColor: Bool = UserDefaults.standard.object(forKey: "room_couch_accent_color") as? Bool ?? false {
+        didSet {
+            UserDefaults.standard.set(isCouchAccentColor, forKey: "room_couch_accent_color")
+        }
+    }
     @Published var catFillHue: Double = UserDefaults.standard.object(forKey: "cat_fill_hue") as? Double ?? 0.04 {
         didSet {
             UserDefaults.standard.set(catFillHue, forKey: "cat_fill_hue")
@@ -179,6 +200,34 @@ final class AppState: ObservableObject {
         }
     }
 
+    func loadHats() async {
+        do {
+            let response = try await withFreshSession {
+                try await self.backend.getHats()
+            }
+            applyHats(response)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    func selectHatForPreview(id: String) {
+        guard ownedHats.contains(where: { $0.id == id }) else { return }
+        selectedHatId = id
+    }
+
+    func toggleEquipSelectedHat() async {
+        let targetHatId = selectedHatId == equippedHatId ? nil : selectedHatId
+        do {
+            let response = try await withFreshSession {
+                try await self.backend.updateEquippedHat(hatId: targetHatId)
+            }
+            applyHats(response)
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
     func signOut() async {
         await run(requiresAuth: false) {
             try await self.supabase.auth.signOut()
@@ -201,6 +250,9 @@ final class AppState: ObservableObject {
             self.financeCatStreamingHeadline = nil
             self.financeCatAgentStatus = .idle
             FinanceCatVerdictStore.clear()
+            self.ownedHats = []
+            self.equippedHatId = nil
+            self.selectedHatId = nil
         }
     }
 
@@ -492,6 +544,27 @@ final class AppState: ObservableObject {
                     }
                 }
             }
+        }
+    }
+
+    private func applyHats(from buddy: BuddyState) {
+        applyHats(HatsResponse(ownedHats: buddy.ownedHats, equippedHatId: buddy.equippedHatId))
+    }
+
+    private func applyHats(_ response: HatsResponse) {
+        ownedHats = response.ownedHats
+        equippedHatId = response.equippedHatId
+
+        if
+            let selectedHatId,
+            !response.ownedHats.contains(where: { $0.id == selectedHatId })
+        {
+            self.selectedHatId = response.equippedHatId
+            return
+        }
+
+        if self.selectedHatId == nil {
+            self.selectedHatId = response.equippedHatId ?? response.ownedHats.first?.id
         }
     }
 }

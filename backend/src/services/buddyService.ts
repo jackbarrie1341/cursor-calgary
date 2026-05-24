@@ -3,6 +3,7 @@ import { env } from "../config/env.js";
 import { addDaysToDateString, moodForSpend, localDateString, monthStartForDateString, streakForToday, weekStartForDateString } from "../buddy/engine.js";
 import { db } from "../db/client.js";
 import { buddyStates, plaidItems, profiles, transactions } from "../db/schema.js";
+import { getHatsPayload, type HatSummary } from "./hatsService.js";
 
 export type BuddyPayload = {
   mood: string;
@@ -18,12 +19,15 @@ export type BuddyPayload = {
   catFillBrightness: number;
   isLinked: boolean;
   hasOnboarded: boolean;
+  ownedHats: HatSummary[];
+  equippedHatId: string | null;
 };
 
 export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
   const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
   const [state] = await db.select().from(buddyStates).where(eq(buddyStates.userId, userId)).limit(1);
   const [item] = await db.select({ id: plaidItems.id }).from(plaidItems).where(eq(plaidItems.userId, userId)).limit(1);
+  const hats = await getHatsPayload(userId);
 
   if (!profile) {
     return {
@@ -39,7 +43,9 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
       catFillSaturation: 0.48,
       catFillBrightness: 1,
       isLinked: Boolean(item),
-      hasOnboarded: false
+      hasOnboarded: false,
+      ownedHats: hats.ownedHats,
+      equippedHatId: hats.equippedHatId
     };
   }
 
@@ -65,7 +71,9 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
     catFillSaturation: profile.catFillSaturation / 100,
     catFillBrightness: profile.catFillBrightness / 100,
     isLinked: Boolean(item),
-    hasOnboarded: true
+    hasOnboarded: true,
+    ownedHats: hats.ownedHats,
+    equippedHatId: hats.equippedHatId
   };
 }
 
@@ -107,6 +115,7 @@ export async function recomputeBuddyState(userId: string): Promise<BuddyPayload>
     .returning();
 
   const [item] = await db.select({ id: plaidItems.id }).from(plaidItems).where(eq(plaidItems.userId, userId)).limit(1);
+  const hats = await getHatsPayload(userId);
 
   return {
     mood: state.mood,
@@ -121,7 +130,9 @@ export async function recomputeBuddyState(userId: string): Promise<BuddyPayload>
     catFillSaturation: profile.catFillSaturation / 100,
     catFillBrightness: profile.catFillBrightness / 100,
     isLinked: Boolean(item),
-    hasOnboarded: true
+    hasOnboarded: true,
+    ownedHats: hats.ownedHats,
+    equippedHatId: hats.equippedHatId
   };
 }
 

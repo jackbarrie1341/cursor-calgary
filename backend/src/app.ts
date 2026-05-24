@@ -11,6 +11,7 @@ import { db, pool } from "./db/client.js";
 import { buddyStates, plaidItems, profiles } from "./db/schema.js";
 import { plaidClient } from "./plaid/client.js";
 import { getBuddyPayload, recomputeBuddyState } from "./services/buddyService.js";
+import { ensureSeededOwnedHats, getHatsPayload, HatOwnershipError, setEquippedHat } from "./services/hatsService.js";
 import { syncPlaidItem, syncPlaidItemByPlaidItemId } from "./services/transactionSync.js";
 
 const onboardingSchema = z.object({
@@ -37,6 +38,10 @@ const colorSchema = z.object({
   catFillHue: z.number().min(0).max(1),
   catFillSaturation: z.number().min(0).max(1),
   catFillBrightness: z.number().min(0).max(1)
+});
+
+const equippedHatSchema = z.object({
+  hatId: z.string().uuid().nullable().optional()
 });
 
 export const app = express();
@@ -90,6 +95,8 @@ app.post("/onboarding", requireAuth, async (req, res, next) => {
         stateDate: localDateString(new Date(), env.APP_TIME_ZONE)
       })
       .onConflictDoNothing();
+
+    await ensureSeededOwnedHats(authReq.userId);
 
     res.json(await recomputeBuddyState(authReq.userId));
   } catch (error) {
@@ -288,6 +295,26 @@ app.patch("/profile/color", requireAuth, async (req, res, next) => {
   }
 });
 
+app.get("/hats", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    res.json(await getHatsPayload(authReq.userId));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.patch("/hats/equipped", requireAuth, async (req, res, next) => {
+  try {
+    const authReq = req as AuthenticatedRequest;
+    const input = equippedHatSchema.parse(req.body);
+    const hatId = input.hatId ?? null;
+    res.json(await setEquippedHat(authReq.userId, hatId));
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get("/friends", requireAuth, async (req, res, next) => {
   try {
     const authReq = req as AuthenticatedRequest;
@@ -426,6 +453,11 @@ app.use((error: unknown, _req: express.Request, res: express.Response, _next: ex
 
   if (isPostgresUniqueViolation(error, "profiles_username_unique")) {
     res.status(409).json({ error: "username_taken", message: "That buddy code is already taken." });
+    return;
+  }
+
+  if (error instanceof HatOwnershipError) {
+    res.status(409).json({ error: "hat_not_owned", message: error.message });
     return;
   }
 

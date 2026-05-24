@@ -12,10 +12,10 @@ export function moodForSpend(spentTodayCents: number, dailyAllowanceCents: numbe
   if (dailyAllowanceCents <= 0) return "sick";
 
   const ratio = spentTodayCents / dailyAllowanceCents;
-  if (ratio <= 0.5) return "happy";
-  if (ratio <= 0.8) return "nervous";
-  if (ratio <= 1) return "hungry";
-  return "sick";
+  if (ratio < 0.5) return "sick";
+  if (ratio <= 0.85) return "happy";
+  if (ratio <= 1.1) return "nervous";
+  return "hungry";
 }
 
 export function streakForToday(spentTodayCents: number, dailyAllowanceCents: number, previousStreak: number | null): number {
