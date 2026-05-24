@@ -205,17 +205,6 @@ private struct MoodBadge: View {
     }
 }
 
-private extension BuddyMood {
-    var color: Color {
-        switch self {
-        case .happy: .green
-        case .nervous: .yellow
-        case .hungry: .orange
-        case .sick: .red
-        }
-    }
-}
-
 private extension FriendBuddy {
     var catFillColor: Color {
         Color(

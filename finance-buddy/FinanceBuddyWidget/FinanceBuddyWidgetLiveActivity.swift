@@ -9,6 +9,8 @@ import ActivityKit
 import WidgetKit
 import SwiftUI
 
+private let widgetBackgroundColor = Color(red: 0.976, green: 0.961, blue: 0.925)
+
 struct FinanceBuddyWidgetAttributes: ActivityAttributes {
     struct ContentState: Codable, Hashable {
         let mood: String
@@ -30,7 +32,7 @@ struct FinanceBuddyWidgetLiveActivity: Widget {
             LiveActivityBuddyImageView(state: context.state)
                 .frame(width: 72, height: 72)
                 .frame(maxWidth: .infinity, minHeight: 96)
-                .activityBackgroundTint(Color(.systemBackground))
+                .activityBackgroundTint(widgetBackgroundColor)
                 .activitySystemActionForegroundColor(Color.primary)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -131,9 +133,9 @@ private extension FinanceBuddyWidgetAttributes.ContentState {
     var moodColor: Color {
         switch mood {
         case "nervous": .yellow
-        case "hungry": .orange
-        case "sick": .red
-        default: .green
+        case "hungry": .red
+        case "sick": Color(red: 0.05, green: 0.62, blue: 0.30)
+        default: Color(red: 0.30, green: 0.72, blue: 0.38)
         }
     }
 

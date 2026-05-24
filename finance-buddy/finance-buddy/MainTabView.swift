@@ -15,9 +15,7 @@ struct MainTabView: View {
 
             SpendingView()
                 .environmentObject(appState)
-                .tabItem {
-                    Label("Spending", systemImage: "list.clipboard")
-                }
+                .tabItem { Label("Spending", image: "Spending") }
 
             FriendsView()
                 .environmentObject(appState)

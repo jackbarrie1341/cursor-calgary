@@ -319,12 +319,7 @@ struct HomeView: View {
     }
 
     private var moodColor: Color {
-        switch displayedMood {
-        case .happy: .green
-        case .nervous: .yellow
-        case .hungry: .orange
-        case .sick: .red
-        }
+        displayedMood.color
     }
 
     private var effectiveMood: BuddyMood {
@@ -332,7 +327,11 @@ struct HomeView: View {
     }
 
     private var catFillColor: Color {
-        Color(hue: appState.catFillHue, saturation: 0.48, brightness: 1.0)
+        Color(
+            hue: appState.catFillHue,
+            saturation: appState.catFillSaturation,
+            brightness: appState.catFillBrightness
+        )
     }
 
     private var homeBackgroundColor: Color {
@@ -407,8 +406,16 @@ private struct SettingsView: View {
                         VStack(spacing: 10) {
                             colorSlider("Hue", value: $appState.catFillHue)
                             colorSlider("Saturation", value: $appState.catFillSaturation)
-                            colorSlider("Darkness", value: darknessBinding)
+                            colorSlider("Brightness", value: $appState.catFillBrightness)
                         }
+
+                        Button {
+                            randomizeCatColor()
+                        } label: {
+                            Label("Randomize", systemImage: "shuffle")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
 
                         BuddyImageView(
                             mood: effectiveMood,
@@ -579,12 +586,7 @@ private struct SettingsView: View {
     }
 
     private var moodColor: Color {
-        switch effectiveMood {
-        case .happy: .green
-        case .nervous: .yellow
-        case .hungry: .orange
-        case .sick: .red
-        }
+        effectiveMood.color
     }
 
     private var hatSelectionBinding: Binding<String?> {
@@ -609,11 +611,10 @@ private struct SettingsView: View {
         return appState.ownedHats.first(where: { $0.id == selectedHatId })
     }
 
-    private var darknessBinding: Binding<Double> {
-        Binding(
-            get: { 1 - appState.catFillBrightness },
-            set: { appState.catFillBrightness = 1 - $0 }
-        )
+    private func randomizeCatColor() {
+        appState.catFillHue = Double.random(in: 0...1)
+        appState.catFillSaturation = Double.random(in: 0.32...0.72)
+        appState.catFillBrightness = Double.random(in: 0.72...1.0)
     }
 
     private func syncBudgetUtilOverrideInputFromState() {

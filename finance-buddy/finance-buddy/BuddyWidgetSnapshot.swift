@@ -2,6 +2,16 @@ import Foundation
 import WidgetKit
 
 struct BuddyWidgetSnapshot: Codable {
+    struct Friend: Codable {
+        let buddyName: String
+        let mood: String
+        let catFillHue: Double?
+        let catFillSaturation: Double?
+        let catFillBrightness: Double?
+        let hatAssetKey: String?
+        let hatSymbolName: String?
+    }
+
     let buddyName: String
     let mood: String
     let spentTodayCents: Int
@@ -13,6 +23,7 @@ struct BuddyWidgetSnapshot: Codable {
     let catFillBrightness: Double
     let hatAssetKey: String?
     let hatSymbolName: String?
+    let friends: [Friend]
     let updatedAt: Date
 }
 
@@ -28,6 +39,7 @@ enum BuddyWidgetSnapshotStore {
         _ buddy: BuddyState,
         mood: BuddyMood,
         equippedHat: HatItem?,
+        friends: [FriendBuddy],
         catFillHue: Double,
         catFillSaturation: Double,
         catFillBrightness: Double
@@ -44,6 +56,17 @@ enum BuddyWidgetSnapshotStore {
             catFillBrightness: catFillBrightness,
             hatAssetKey: equippedHat?.assetKey,
             hatSymbolName: equippedHat?.symbolName,
+            friends: friends.prefix(4).map {
+                BuddyWidgetSnapshot.Friend(
+                    buddyName: $0.buddyName,
+                    mood: $0.mood.rawValue,
+                    catFillHue: $0.catFillHue,
+                    catFillSaturation: $0.catFillSaturation,
+                    catFillBrightness: $0.catFillBrightness,
+                    hatAssetKey: $0.hatAssetKey,
+                    hatSymbolName: $0.hatSymbolName
+                )
+            },
             updatedAt: Date()
         )
 
@@ -51,11 +74,13 @@ enum BuddyWidgetSnapshotStore {
         defaults.set(data, forKey: key)
         WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddyWidget")
         WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddySpendingWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddyCrewWidget")
     }
 
     static func clear() {
         defaults.removeObject(forKey: key)
         WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddyWidget")
         WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddySpendingWidget")
+        WidgetCenter.shared.reloadTimelines(ofKind: "FinanceBuddyCrewWidget")
     }
 }

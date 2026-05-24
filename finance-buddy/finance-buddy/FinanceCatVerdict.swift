@@ -29,44 +29,19 @@ struct BuddyVerdict: Codable, Equatable, Sendable {
         BuddyVerdict(
             mood: mood,
             severity: severity,
-            headline: headline.removingEmoji,
-            roast: roast.removingEmoji,
-            biggestCulprit: biggestCulprit?.removingEmoji,
-            tip: tip.removingEmoji,
+            headline: headline.cleaningModelDisplayText,
+            roast: roast.cleaningModelDisplayText,
+            biggestCulprit: biggestCulprit?.cleaningModelDisplayText,
+            tip: tip.cleaningModelDisplayText,
             projectedMonthEndCents: projectedMonthEndCents
         )
     }
 
-    func refinedForHome(using snapshot: FinanceCatSnapshot) -> BuddyVerdict {
-        let refinedHeadline = headline.needsCatHeadlineReplacement
-            ? Self.makeCatHeadline(using: snapshot, biggestCulprit: biggestCulprit)
-            : headline
+}
 
-        return BuddyVerdict(
-            mood: mood,
-            severity: severity,
-            headline: refinedHeadline.removingEmoji,
-            roast: roast.removingEmoji,
-            biggestCulprit: biggestCulprit?.removingEmoji,
-            tip: tip.removingEmoji,
-            projectedMonthEndCents: projectedMonthEndCents
-        )
-    }
-
-    private static func makeCatHeadline(using snapshot: FinanceCatSnapshot, biggestCulprit: String?) -> String {
-        if let repeated = snapshot.repeatedTodaysTransaction {
-            return "\(repeated.name) again? My whiskers noticed."
-        }
-
-        if let largest = snapshot.todaysTransactions.max(by: { $0.amountCents < $1.amountCents }) {
-            return "\(largest.name) today? The cat is watching."
-        }
-
-        if let biggestCulprit, !biggestCulprit.isEmpty {
-            return "\(biggestCulprit) is looking a little too familiar."
-        }
-
-        return "Quiet spending today. The cat approves."
+enum FinanceCatTextCleaner {
+    static func clean(_ text: String) -> String {
+        text.cleaningModelDisplayText
     }
 }
 
@@ -214,47 +189,26 @@ struct StreamedVerdict: Sendable, Equatable {
     }
 }
 
-private extension FinanceCatSnapshot {
-    var repeatedTodaysTransaction: Transaction? {
-        todaysTransactions
-            .filter { transaction in
-                monthlyBreakdown.contains { breakdown in
-                    breakdown.count > 1 && breakdown.name.caseInsensitiveCompare(transaction.name) == .orderedSame
-                }
-            }
-            .max { left, right in
-                let leftCount = monthlyBreakdown.first { $0.name.caseInsensitiveCompare(left.name) == .orderedSame }?.count ?? 0
-                let rightCount = monthlyBreakdown.first { $0.name.caseInsensitiveCompare(right.name) == .orderedSame }?.count ?? 0
-                if leftCount == rightCount {
-                    return left.amountCents < right.amountCents
-                }
-                return leftCount < rightCount
-            }
-    }
-}
-
 private extension String {
-    var removingEmoji: String {
-        String(unicodeScalars.filter { scalar in
+    var cleaningModelDisplayText: String {
+        var cleaned = String(unicodeScalars.filter { scalar in
             !scalar.properties.isEmojiPresentation
         })
-    }
-
-    var needsCatHeadlineReplacement: Bool {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines)
-        let genericPhrases = [
-            "another day of spending",
-            "you spent money today",
-            "day of spending",
-            "recent purchases",
-            "transactions today"
-        ]
-
-        return trimmed.count > 90
-            || trimmed.contains("\n")
-            || trimmed.contains("c,")
-            || trimmed.filter({ $0 == "," }).count >= 2
-            || trimmed.filter({ $0 == ":" }).count >= 2
-            || genericPhrases.contains { trimmed.localizedCaseInsensitiveContains($0) }
+        cleaned = cleaned.replacingOccurrences(
+            of: #"(?i)\b\d+\s*c\b"#,
+            with: "money",
+            options: .regularExpression
+        )
+        cleaned = cleaned.replacingOccurrences(
+            of: #"\b\d{6,}\b"#,
+            with: "",
+            options: .regularExpression
+        )
+        cleaned = cleaned.replacingOccurrences(
+            of: #"\s+"#,
+            with: " ",
+            options: .regularExpression
+        )
+        return cleaned.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

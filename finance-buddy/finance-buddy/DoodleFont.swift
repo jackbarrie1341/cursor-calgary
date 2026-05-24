@@ -4,11 +4,11 @@ import UIKit
 
 enum DoodleFont {
     private static let bodyFontName = registerFont(candidates: [
-        ("Candy Beans", "otf")
+        ("BangTamvan", "ttf")
     ])
 
     private static let titleFontName = registerFont(candidates: [
-        ("Candy Beans", "otf")
+        ("BangTamvan", "ttf")
     ])
 
     private static func registerFont(candidates: [(name: String, ext: String)]) -> String {
