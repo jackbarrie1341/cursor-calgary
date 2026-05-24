@@ -114,7 +114,7 @@ struct HomeView: View {
 
             BuddyImageView(
                 mood: buddy.mood,
-                overrideAssetName: appState.debugBuddyAssetName,
+                overrideAssetName: nil,
                 fallbackSymbolName: buddy.mood.symbolName,
                 fallbackColor: moodColor,
                 hatAssetKey: equippedHat?.assetKey,
@@ -399,18 +399,6 @@ private struct SettingsView: View {
                 }
 
                 Section {
-                    Picker("Test buddy", selection: $appState.debugBuddyAssetName) {
-                        Text("Mood default").tag(Optional<String>.none)
-                        ForEach(debugBuddyAssets, id: \.self) { assetName in
-                            Text(assetName.replacingOccurrences(of: "Cat_", with: "").replacingOccurrences(of: "_", with: " "))
-                                .tag(Optional(assetName))
-                        }
-                    }
-                } header: {
-                    Text("Developer")
-                }
-
-                Section {
                     Button(role: .destructive) {
                         dismiss()
                         Task {
@@ -435,16 +423,6 @@ private struct SettingsView: View {
         .task {
             await appState.loadHats()
         }
-    }
-
-    private var debugBuddyAssets: [String] {
-        [
-            "Cat_Broke",
-            "Cat_Cheesing",
-            "Cat_Money_Spread",
-            "Cat_Tear_Pool",
-            "Cat_Worried"
-        ]
     }
 
     private var catFillColor: Color {

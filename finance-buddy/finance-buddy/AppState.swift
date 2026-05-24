@@ -32,7 +32,6 @@ final class AppState: ObservableObject {
     @Published var friends: [FriendBuddy] = []
     @Published var friendSearchResults: [FriendSearchResult] = []
     @Published var spending: SpendingResponse?
-    @Published var debugBuddyAssetName: String?
     @Published var ownedHats: [HatItem] = []
     @Published var equippedHatId: String?
     @Published var selectedHatId: String?

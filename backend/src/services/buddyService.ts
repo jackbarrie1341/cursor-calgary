@@ -58,6 +58,11 @@ export async function getBuddyPayload(userId: string): Promise<BuddyPayload> {
     return await recomputeBuddyState(userId);
   }
 
+  const expectedMood = moodForSpend(state.spentTodayCents, state.dailyAllowanceCents);
+  if (state.mood !== expectedMood) {
+    return await recomputeBuddyState(userId);
+  }
+
   return {
     mood: state.mood,
     spentTodayCents: state.spentTodayCents,
