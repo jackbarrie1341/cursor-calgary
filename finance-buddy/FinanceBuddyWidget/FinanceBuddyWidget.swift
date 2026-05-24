@@ -6,6 +6,9 @@ struct BuddyWidgetSnapshot: Codable {
     let buddyName: String
     let mood: String
     let spentTodayCents: Int
+    let catFillHue: Double?
+    let catFillSaturation: Double?
+    let catFillBrightness: Double?
     let updatedAt: Date
 }
 
@@ -63,30 +66,53 @@ struct FinanceBuddyWidgetEntryView: View {
     var entry: Provider.Entry
 
     var body: some View {
-        VStack(spacing: 8) {
-            Image(entry.snapshot.assetName)
+        HStack(spacing: 10) {
+            BuddyWidgetImageView(snapshot: entry.snapshot)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(entry.snapshot.buddyName)
+                    .font(WidgetFont.font(18))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+
+                Text(entry.snapshot.moodTitle)
+                    .font(WidgetFont.font(15))
+                    .foregroundStyle(entry.snapshot.moodColor)
+                    .lineLimit(1)
+
+                Text(entry.snapshot.spentTodayCents.moneyText)
+                    .font(WidgetFont.font(20))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .containerBackground(Color(.systemBackground), for: .widget)
+    }
+}
+
+private struct BuddyWidgetImageView: View {
+    let snapshot: BuddyWidgetSnapshot
+
+    var body: some View {
+        ZStack {
+            if let fillAssetName = snapshot.fillAssetName, UIImage(named: fillAssetName) != nil {
+                Image(fillAssetName)
+                    .resizable()
+                    .interpolation(.none)
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .foregroundStyle(snapshot.catFillColor)
+            }
+
+            Image(snapshot.lineAssetName)
                 .resizable()
                 .interpolation(.none)
                 .scaledToFit()
-                .frame(maxHeight: 76)
-                .padding(.top, 2)
-
-            Text(entry.snapshot.buddyName)
-                .font(WidgetFont.font(18))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-
-            Text(entry.snapshot.moodTitle)
-                .font(WidgetFont.font(15))
-                .foregroundStyle(entry.snapshot.moodColor)
-
-            Text(entry.snapshot.spentTodayCents.moneyText)
-                .font(WidgetFont.font(20))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .containerBackground(Color(.systemBackground), for: .widget)
     }
 }
 
@@ -108,6 +134,9 @@ private extension BuddyWidgetSnapshot {
         buddyName: "Bean",
         mood: "happy",
         spentTodayCents: 0,
+        catFillHue: 0.04,
+        catFillSaturation: 0.48,
+        catFillBrightness: 1.0,
         updatedAt: .now
     )
 
@@ -120,12 +149,20 @@ private extension BuddyWidgetSnapshot {
         }
     }
 
-    var assetName: String {
+    var lineAssetName: String {
         switch mood {
         case "nervous": "Cat_Worried"
         case "hungry": "Cat_Tear_Pool"
-        case "sick": "Cat_Broke"
-        default: "Cat_Cheesing"
+        case "sick": "Cat_Money_Spread_1"
+        default: "1_Cat_Cheesing"
+        }
+    }
+
+    var fillAssetName: String? {
+        switch mood {
+        case "sick": "1_Fill_Cat_Money_Spread"
+        case "happy": "1_Fill_Cat_Cheesing"
+        default: nil
         }
     }
 
@@ -136,6 +173,14 @@ private extension BuddyWidgetSnapshot {
         case "sick": .red
         default: .green
         }
+    }
+
+    var catFillColor: Color {
+        Color(
+            hue: catFillHue ?? 0.04,
+            saturation: catFillSaturation ?? 0.48,
+            brightness: catFillBrightness ?? 1.0
+        )
     }
 }
 

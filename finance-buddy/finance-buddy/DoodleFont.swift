@@ -52,17 +52,33 @@ enum DoodleFont {
 
 enum DoodleAppearance {
     static func configure() {
+        let normalFont = DoodleFont.uiFont(13)
+        let selectedFont = DoodleFont.uiFont(13)
         let normalAttributes: [NSAttributedString.Key: Any] = [
-            .font: DoodleFont.uiFont(13)
+            .font: normalFont
         ]
         let selectedAttributes: [NSAttributedString.Key: Any] = [
-            .font: DoodleFont.uiFont(13),
+            .font: selectedFont,
             .foregroundColor: UIColor.systemBlue
         ]
 
         let itemAppearance = UITabBarItem.appearance()
         itemAppearance.setTitleTextAttributes(normalAttributes, for: .normal)
         itemAppearance.setTitleTextAttributes(selectedAttributes, for: .selected)
+
+        let tabAppearance = UITabBarAppearance()
+        tabAppearance.configureWithDefaultBackground()
+        [
+            tabAppearance.stackedLayoutAppearance,
+            tabAppearance.inlineLayoutAppearance,
+            tabAppearance.compactInlineLayoutAppearance
+        ].forEach { appearance in
+            appearance.normal.titleTextAttributes = normalAttributes
+            appearance.selected.titleTextAttributes = selectedAttributes
+        }
+
+        UITabBar.appearance().standardAppearance = tabAppearance
+        UITabBar.appearance().scrollEdgeAppearance = tabAppearance
     }
 }
 

@@ -7,7 +7,7 @@ final class AppState: ObservableObject {
     @Published var buddy: BuddyState? {
         didSet {
             if let buddy {
-                BuddyWidgetSnapshotStore.save(buddy)
+                saveWidgetSnapshot(for: buddy)
             } else {
                 BuddyWidgetSnapshotStore.clear()
             }
@@ -23,6 +23,30 @@ final class AppState: ObservableObject {
     @Published var friends: [FriendBuddy] = []
     @Published var friendSearchResults: [FriendSearchResult] = []
     @Published var debugBuddyAssetName: String?
+    @Published var catFillHue: Double = UserDefaults.standard.object(forKey: "cat_fill_hue") as? Double ?? 0.04 {
+        didSet {
+            UserDefaults.standard.set(catFillHue, forKey: "cat_fill_hue")
+            if let buddy {
+                saveWidgetSnapshot(for: buddy)
+            }
+        }
+    }
+    @Published var catFillSaturation: Double = UserDefaults.standard.object(forKey: "cat_fill_saturation") as? Double ?? 0.48 {
+        didSet {
+            UserDefaults.standard.set(catFillSaturation, forKey: "cat_fill_saturation")
+            if let buddy {
+                saveWidgetSnapshot(for: buddy)
+            }
+        }
+    }
+    @Published var catFillBrightness: Double = UserDefaults.standard.object(forKey: "cat_fill_brightness") as? Double ?? 1.0 {
+        didSet {
+            UserDefaults.standard.set(catFillBrightness, forKey: "cat_fill_brightness")
+            if let buddy {
+                saveWidgetSnapshot(for: buddy)
+            }
+        }
+    }
 
     private let supabase = SupabaseClient(
         supabaseURL: AppConfig.supabaseURL,
@@ -238,6 +262,15 @@ final class AppState: ObservableObject {
         currentUsername = session.user.email?.components(separatedBy: "@").first
             ?? currentUsername
         isAuthenticated = true
+    }
+
+    private func saveWidgetSnapshot(for buddy: BuddyState) {
+        BuddyWidgetSnapshotStore.save(
+            buddy,
+            catFillHue: catFillHue,
+            catFillSaturation: catFillSaturation,
+            catFillBrightness: catFillBrightness
+        )
     }
 
     private func subscribeToBuddyUpdates() async {

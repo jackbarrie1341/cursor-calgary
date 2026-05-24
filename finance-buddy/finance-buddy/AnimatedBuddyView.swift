@@ -6,6 +6,7 @@ struct BuddyImageView: View {
     let overrideAssetName: String?
     let fallbackSymbolName: String
     let fallbackColor: Color
+    var fillColor: Color = Color(hue: 0.04, saturation: 0.45, brightness: 1.0)
     var size: CGFloat = 170
 
     @State private var frameIndex = 0
@@ -16,31 +17,31 @@ struct BuddyImageView: View {
         overrideAssetName ?? mood.assetName
     }
 
-    private var frameNames: [String] {
-        guard assetName == "Cat_Money_Spread" else {
-            return [assetName]
-        }
-
-        return [
-            "Cat_Money_Spread_1",
-            "Cat_Money_Spread_2",
-            "Cat_Money_Spread_3",
-            "Cat_Money_Spread_2"
-        ]
+    private var frames: [BuddyImageFrame] {
+        BuddyImageFrame.frames(for: assetName)
     }
 
-    private var currentAssetName: String {
-        frameNames[min(frameIndex, frameNames.count - 1)]
+    private var currentFrame: BuddyImageFrame {
+        frames[min(frameIndex, frames.count - 1)]
     }
 
     var body: some View {
         ZStack {
-            if UIImage(named: currentAssetName) != nil {
-                Image(currentAssetName)
+            if let fillAssetName = currentFrame.fillAssetName, UIImage(named: fillAssetName) != nil {
+                Image(fillAssetName)
+                    .resizable()
+                    .interpolation(.none)
+                    .renderingMode(.template)
+                    .scaledToFit()
+                    .foregroundStyle(fillColor)
+            }
+
+            if UIImage(named: currentFrame.lineAssetName) != nil {
+                Image(currentFrame.lineAssetName)
                     .resizable()
                     .interpolation(.none)
                     .scaledToFit()
-            } else {
+            } else if currentFrame.fillAssetName == nil {
                 Image(systemName: fallbackSymbolName)
                     .font(.system(size: 82, weight: .semibold))
                     .foregroundStyle(fallbackColor)
@@ -49,13 +50,43 @@ struct BuddyImageView: View {
         .frame(width: size, height: size)
         .background(fallbackColor.opacity(0.14), in: Circle())
         .onReceive(timer) { _ in
-            guard frameNames.count > 1 else { return }
-            frameIndex = (frameIndex + 1) % frameNames.count
+            guard frames.count > 1 else { return }
+            frameIndex = (frameIndex + 1) % frames.count
         }
         .onChange(of: assetName) { _, _ in
             frameIndex = 0
         }
         .accessibilityLabel("\(mood.title) buddy")
+    }
+}
+
+private struct BuddyImageFrame {
+    let lineAssetName: String
+    let fillAssetName: String?
+
+    static func frames(for assetName: String) -> [BuddyImageFrame] {
+        switch assetName {
+        case "Cat_Cheesing":
+            [
+                BuddyImageFrame(lineAssetName: "1_Cat_Cheesing", fillAssetName: "1_Fill_Cat_Cheesing")
+            ]
+        case "Cat_Cheesing_Blink":
+            [
+                BuddyImageFrame(lineAssetName: "1_Cat_Cheesing", fillAssetName: "1_Fill_Cat_Cheesing"),
+                BuddyImageFrame(lineAssetName: "2_Cat_Cheesing", fillAssetName: "2_Fill_Cat_Cheesing")
+            ]
+        case "Cat_Money_Spread":
+            [
+                BuddyImageFrame(lineAssetName: "Cat_Money_Spread_1", fillAssetName: "1_Fill_Cat_Money_Spread"),
+                BuddyImageFrame(lineAssetName: "Cat_Money_Spread_2", fillAssetName: "2_Fill_Cat_Money_Spread"),
+                BuddyImageFrame(lineAssetName: "Cat_Money_Spread_3", fillAssetName: "3_Fill_Cat_Money_Spread"),
+                BuddyImageFrame(lineAssetName: "Cat_Money_Spread_2", fillAssetName: "2_Fill_Cat_Money_Spread")
+            ]
+        default:
+            [
+                BuddyImageFrame(lineAssetName: assetName, fillAssetName: nil)
+            ]
+        }
     }
 }
 
@@ -65,7 +96,7 @@ extension BuddyMood {
         case .happy: "Cat_Cheesing"
         case .nervous: "Cat_Worried"
         case .hungry: "Cat_Tear_Pool"
-        case .sick: "Cat_Broke"
+        case .sick: "Cat_Money_Spread"
         }
     }
 }

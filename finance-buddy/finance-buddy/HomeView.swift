@@ -32,8 +32,11 @@ struct HomeView: View {
                     Button {
                         isShowingSettings = true
                     } label: {
-                        Image(systemName: "gearshape")
-                            .font(.system(size: 22, weight: .semibold))
+                        Image("settings")
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                            .frame(width: 28, height: 28)
                             .frame(width: 44, height: 44)
                             .background(Color(.systemBackground), in: Circle())
                     }
@@ -61,7 +64,8 @@ struct HomeView: View {
                 mood: buddy.mood,
                 overrideAssetName: appState.debugBuddyAssetName,
                 fallbackSymbolName: buddy.mood.symbolName,
-                fallbackColor: moodColor
+                fallbackColor: moodColor,
+                fillColor: catFillColor
             )
 
             VStack(spacing: 6) {
@@ -182,6 +186,10 @@ struct HomeView: View {
         }
     }
 
+    private var catFillColor: Color {
+        Color(hue: appState.catFillHue, saturation: 0.48, brightness: 1.0)
+    }
+
     private func money(_ cents: Int) -> String {
         let value = Decimal(cents) / 100
         return value.formatted(.currency(code: Locale.current.currency?.identifier ?? "USD"))
@@ -202,6 +210,37 @@ private struct SettingsView: View {
                     if !appState.currentUsername.isEmpty {
                         LabeledContent("Account", value: appState.currentUsername)
                     }
+                }
+
+                Section {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Cat color")
+                            Spacer()
+                            Circle()
+                                .fill(catFillColor)
+                                .frame(width: 28, height: 28)
+                                .overlay(Circle().stroke(.secondary.opacity(0.35), lineWidth: 1))
+                        }
+
+                        VStack(spacing: 10) {
+                            colorSlider("Hue", value: $appState.catFillHue)
+                            colorSlider("Saturation", value: $appState.catFillSaturation)
+                            colorSlider("Darkness", value: darknessBinding)
+                        }
+
+                        BuddyImageView(
+                            mood: .happy,
+                            overrideAssetName: "Cat_Cheesing",
+                            fallbackSymbolName: BuddyMood.happy.symbolName,
+                            fallbackColor: .green,
+                            fillColor: catFillColor,
+                            size: 96
+                        )
+                        .frame(maxWidth: .infinity)
+                    }
+                } header: {
+                    Text("Buddy color")
                 }
 
                 Section {
@@ -244,9 +283,33 @@ private struct SettingsView: View {
         [
             "Cat_Broke",
             "Cat_Cheesing",
+            "Cat_Cheesing_Blink",
             "Cat_Money_Spread",
             "Cat_Tear_Pool",
             "Cat_Worried"
         ]
+    }
+
+    private var catFillColor: Color {
+        Color(
+            hue: appState.catFillHue,
+            saturation: appState.catFillSaturation,
+            brightness: appState.catFillBrightness
+        )
+    }
+
+    private var darknessBinding: Binding<Double> {
+        Binding(
+            get: { 1 - appState.catFillBrightness },
+            set: { appState.catFillBrightness = 1 - $0 }
+        )
+    }
+
+    private func colorSlider(_ title: String, value: Binding<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title)
+                .frame(width: 78, alignment: .leading)
+            Slider(value: value, in: 0...1)
+        }
     }
 }
